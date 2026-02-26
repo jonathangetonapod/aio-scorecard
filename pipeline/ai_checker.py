@@ -173,7 +173,7 @@ class AIChecker:
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "gpt-4o",
+                        "model": "gpt-5-mini",
                         "messages": [
                             {
                                 "role": "system", 

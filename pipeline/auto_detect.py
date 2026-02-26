@@ -306,7 +306,7 @@ Respond in JSON format only:
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "gpt-4o",
+                        "model": "gpt-5-mini",
                         "messages": [
                             {"role": "system", "content": "You are a manufacturing industry analyst. Extract specific, unique keywords - not generic terms. Always respond with valid JSON only."},
                             {"role": "user", "content": prompt}
