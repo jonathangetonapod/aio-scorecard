@@ -181,8 +181,7 @@ class AIChecker:
                             },
                             {"role": "user", "content": prompt}
                         ],
-                        "max_tokens": 1000,
-                        "temperature": 0.3
+                        "max_completion_tokens": 4000
                     }
                 )
                 response.raise_for_status()

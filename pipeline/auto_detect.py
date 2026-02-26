@@ -311,8 +311,7 @@ Respond in JSON format only:
                             {"role": "system", "content": "You are a manufacturing industry analyst. Extract specific, unique keywords - not generic terms. Always respond with valid JSON only."},
                             {"role": "user", "content": prompt}
                         ],
-                        "max_tokens": 500,
-                        "temperature": 0.1
+                        "max_completion_tokens": 4000
                     }
                 )
                 response.raise_for_status()
