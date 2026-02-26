@@ -1,17 +1,17 @@
 """
 Auto-detect company info from domain
 
-Enhanced v2: Extracts specific manufacturing keywords for vertical-based queries.
+Enhanced v2: Uses LLM to intelligently extract manufacturing keywords.
 
-Uses web scraping to extract:
-- Company name
-- Industry vertical (category)
-- Primary keyword (most unique/specific term)
-- Additional keywords
-- Location (optional)
+Flow:
+1. Scrape website homepage
+2. Pass content to GPT-4o-mini for intelligent extraction
+3. Return structured company info with specific keywords
 """
 
 import re
+import os
+import json
 import httpx
 from bs4 import BeautifulSoup
 from dataclasses import dataclass, field
@@ -248,11 +248,70 @@ def clean_company_name(name: str, domain: str) -> str:
     return result.strip()
 
 
-async def detect_from_domain(domain: str) -> CompanyInfo:
+async def extract_with_llm(content: str, company_name: str, openai_key: str) -> dict:
+    """
+    Use GPT-4o-mini to intelligently extract manufacturing info from website content.
+    """
+    prompt = f"""Analyze this manufacturing company's website content and extract:
+
+1. **company_name**: The actual company name (not tagline)
+2. **vertical**: Their primary industry category (e.g., "Aerospace Manufacturing", "Medical Devices", "CNC Machining")
+3. **primary_keyword**: The MOST SPECIFIC manufacturing capability that makes them unique. 
+   - NOT generic terms like "manufacturing" or "precision engineering"
+   - GOOD examples: "investment casting", "turbine blade manufacturing", "5-axis CNC machining", "titanium forging", "medical implant machining"
+4. **keywords**: List of 3-5 specific manufacturing processes, materials, or capabilities they offer
+5. **location**: City, State if mentioned (or empty string)
+
+Company name from title: {company_name}
+
+Website content:
+{content[:6000]}
+
+Respond in JSON format only:
+{{"company_name": "...", "vertical": "...", "primary_keyword": "...", "keywords": ["...", "..."], "location": "..."}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {openai_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "system", "content": "You are a manufacturing industry analyst. Extract specific, unique keywords - not generic terms. Always respond with valid JSON only."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "max_tokens": 500,
+                    "temperature": 0.1
+                }
+            )
+            response.raise_for_status()
+            data = response.json()
+            text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            
+            # Parse JSON from response
+            text = text.strip()
+            if text.startswith("```"):
+                text = text.split("```")[1]
+                if text.startswith("json"):
+                    text = text[4:]
+            
+            return json.loads(text)
+    except Exception as e:
+        print(f"    ⚠ LLM extraction failed: {e}")
+        return None
+
+
+async def detect_from_domain(domain: str, use_llm: bool = True) -> CompanyInfo:
     """
     Auto-detect company info from domain.
     
-    Enhanced v2: Extracts specific keywords for vertical-based queries.
+    Args:
+        domain: Website domain to analyze
+        use_llm: If True, use GPT-4o-mini for intelligent extraction (recommended)
     """
     info = CompanyInfo(domain=domain)
     
@@ -291,34 +350,50 @@ async def detect_from_domain(domain: str) -> CompanyInfo:
                 tag.decompose()
             
             page_text = soup.get_text(separator=' ', strip=True)[:8000]
-            
-            # Combine all text for analysis
             combined_text = f"{info.company_name} {info.description} {page_text}"
             
-            # 1. Detect vertical category
+            # Try LLM extraction first (smarter)
+            openai_key = os.getenv('OPENAI_API_KEY')
+            if use_llm and openai_key:
+                print(f"  🤖 Using LLM to analyze {domain_clean}...")
+                llm_result = await extract_with_llm(combined_text, info.company_name, openai_key)
+                
+                if llm_result:
+                    info.company_name = llm_result.get("company_name", info.company_name)
+                    info.vertical = llm_result.get("vertical", "Manufacturing")
+                    info.primary_keyword = llm_result.get("primary_keyword", "precision manufacturing")
+                    info.keywords = llm_result.get("keywords", [])
+                    info.location = llm_result.get("location", "")
+                    info.services = info.keywords[:5]
+                    info.detected = True
+                    
+                    print(f"  ✓ LLM Detected: {info.company_name}")
+                    print(f"    Vertical: {info.vertical}")
+                    print(f"    Primary keyword: {info.primary_keyword}")
+                    if info.keywords:
+                        print(f"    Keywords: {', '.join(info.keywords[:5])}")
+                    
+                    return info
+            
+            # Fallback to rule-based extraction
+            print(f"  📝 Using rule-based extraction for {domain_clean}...")
+            
             vertical_key, vertical_name = detect_vertical(combined_text)
             info.vertical = vertical_name
             
-            # 2. Extract specific keywords
             keyword_counts = extract_keywords_from_text(combined_text)
-            info.keywords = [kw for kw, count in keyword_counts[:10]]  # Top 10
+            info.keywords = [kw for kw, count in keyword_counts[:10]]
             
-            # 3. Determine primary keyword (most mentioned specific term)
             if keyword_counts:
                 info.primary_keyword = keyword_counts[0][0]
             else:
-                # Fallback to vertical's default keywords
                 info.primary_keyword = TARGET_VERTICALS.get(vertical_key, {}).get("keywords", ["manufacturing"])[0]
             
-            # 4. Legacy: services field (for backwards compat)
             info.services = info.keywords[:5]
-            
-            # 5. Try to find location
             info.location = extract_location(page_text)
-            
             info.detected = True
             
-            print(f"  ✓ Detected: {info.company_name}")
+            print(f"  ✓ Rule-based Detected: {info.company_name}")
             print(f"    Vertical: {info.vertical}")
             print(f"    Primary keyword: {info.primary_keyword}")
             if info.keywords:
@@ -385,21 +460,24 @@ async def detect_from_domain_deep(domain: str) -> CompanyInfo:
 
 
 async def test():
-    """Test detection with manufacturing companies"""
+    """Test LLM-powered detection with manufacturing companies"""
+    from dotenv import load_dotenv
+    load_dotenv()
+    
     domains = [
         "xometry.com",
         "protolabs.com", 
-        "genesisengineeredsolutions.com",
         "pennengineering.com",
     ]
     
-    print("\n🔍 Testing Enhanced Auto-Detection (v2)\n")
+    print("\n🔍 Testing LLM-Powered Auto-Detection\n")
     print("="*60)
     
     for domain in domains:
         print(f"\n📊 Analyzing: {domain}")
         print("-"*40)
-        info = await detect_from_domain(domain)
+        info = await detect_from_domain(domain, use_llm=True)
+        print(f"\n  Summary:")
         print(f"  Company: {info.company_name}")
         print(f"  Vertical: {info.vertical}")
         print(f"  Primary Keyword: {info.primary_keyword}")
