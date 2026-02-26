@@ -226,7 +226,7 @@ async def analyze_domain(req: AnalyzeRequest):
             vertical=req.vertical,
             visibility_score=f"{report.visibility_score:.0f}%",
             top_competitor=top_competitor,
-            email_snippet=f"I noticed you're not ranking in LLMs for what you focus on — {req.primary_keyword}. I ran a report comparing you to other {req.primary_keyword} manufacturers, and this is where you rank. Can I send over the report?"
+            email_snippet=f"I noticed you're not ranking in LLMs for what you focus on: {req.primary_keyword}. I ran a report comparing you to other {req.primary_keyword} manufacturers, and this is where you rank. Can I send over the report?"
         )
         
         return AnalyzeResponse(
