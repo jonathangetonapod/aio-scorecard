@@ -248,9 +248,10 @@ def clean_company_name(name: str, domain: str) -> str:
     return result.strip()
 
 
-async def extract_with_llm(content: str, company_name: str, openai_key: str) -> dict:
+async def extract_with_llm(content: str, company_name: str, openai_key: str = None, perplexity_key: str = None) -> dict:
     """
-    Use GPT-4o-mini to intelligently extract manufacturing info from website content.
+    Use GPT-4o or Perplexity to intelligently extract manufacturing info from website content.
+    Prefers Perplexity (has web search) if available, falls back to GPT-4o.
     """
     prompt = f"""Analyze this manufacturing company's website content and extract:
 
@@ -272,25 +273,53 @@ Respond in JSON format only:
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {openai_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": "You are a manufacturing industry analyst. Extract specific, unique keywords - not generic terms. Always respond with valid JSON only."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "max_tokens": 500,
-                    "temperature": 0.1
-                }
-            )
-            response.raise_for_status()
-            data = response.json()
-            text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            # Try Perplexity first (has web search for better context)
+            if perplexity_key:
+                print(f"    Using Perplexity for analysis...")
+                response = await client.post(
+                    "https://api.perplexity.ai/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {perplexity_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "sonar",
+                        "messages": [
+                            {"role": "system", "content": "You are a manufacturing industry analyst. Extract specific, unique keywords - not generic terms. Always respond with valid JSON only."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "max_tokens": 500,
+                        "temperature": 0.1
+                    }
+                )
+                response.raise_for_status()
+                data = response.json()
+                text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            
+            # Fall back to GPT-4o
+            elif openai_key:
+                print(f"    Using GPT-4o for analysis...")
+                response = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {openai_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "gpt-4o",
+                        "messages": [
+                            {"role": "system", "content": "You are a manufacturing industry analyst. Extract specific, unique keywords - not generic terms. Always respond with valid JSON only."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "max_tokens": 500,
+                        "temperature": 0.1
+                    }
+                )
+                response.raise_for_status()
+                data = response.json()
+                text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            else:
+                return None
             
             # Parse JSON from response
             text = text.strip()
@@ -354,9 +383,16 @@ async def detect_from_domain(domain: str, use_llm: bool = True) -> CompanyInfo:
             
             # Try LLM extraction first (smarter)
             openai_key = os.getenv('OPENAI_API_KEY')
-            if use_llm and openai_key:
+            perplexity_key = os.getenv('PERPLEXITY_API_KEY')
+            
+            if use_llm and (openai_key or perplexity_key):
                 print(f"  🤖 Using LLM to analyze {domain_clean}...")
-                llm_result = await extract_with_llm(combined_text, info.company_name, openai_key)
+                llm_result = await extract_with_llm(
+                    combined_text, 
+                    info.company_name, 
+                    openai_key=openai_key,
+                    perplexity_key=perplexity_key
+                )
                 
                 if llm_result:
                     info.company_name = llm_result.get("company_name", info.company_name)
