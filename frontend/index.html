@@ -753,32 +753,51 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎯 AIO Readiness Scorecard</h1>
-            <p class="subtitle">Find out if GPT-5 and Perplexity recommend your business when customers search for your specific manufacturing capabilities.</p>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
+                <div style="font-size: 2.5rem;">🎯</div>
+                <div>
+                    <h1 style="margin: 0;">AI Visibility Scorecard</h1>
+                    <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 5px;">by Lead Gen Jay</div>
+                </div>
+            </div>
+            <p class="subtitle">See exactly how you rank when B2B buyers ask ChatGPT and Perplexity to find manufacturers like you.</p>
         </header>
         
         <!-- What This Tool Does -->
         <div class="explainer" id="explainerBox">
-            <h2>💡 How This Works <a href="#" onclick="openModal(); return false;" style="font-size: 0.8rem; color: var(--accent-blue); margin-left: 10px;">Learn more →</a></h2>
+            <h2>💡 How It Works <a href="#" onclick="openModal(); return false;" style="font-size: 0.8rem; color: var(--accent-blue); margin-left: 10px;">Full methodology →</a></h2>
             <div class="explainer-steps">
                 <div class="explainer-step">
                     <div class="step-number">1</div>
-                    <div class="step-title">Extract Your Keywords</div>
-                    <div class="step-desc">We scan your website to identify your <strong>specific manufacturing capabilities</strong> - investment casting, 5-axis CNC, turbine blades, etc.</div>
+                    <div class="step-title">AI Analyzes Your Website</div>
+                    <div class="step-desc">We use <strong>Perplexity AI</strong> to scan your website and extract your most specific, searchable manufacturing capabilities (not generic terms).</div>
                 </div>
                 <div class="explainer-step">
                     <div class="step-number">2</div>
-                    <div class="step-title">Query AI by Vertical</div>
-                    <div class="step-desc">We ask <strong>GPT-5</strong> and <strong>Perplexity</strong>: "Find me [your keyword] manufacturing companies" - exactly what buyers ask</div>
+                    <div class="step-title">We Query Like Buyers Do</div>
+                    <div class="step-desc">We ask <strong>ChatGPT</strong> and <strong>Perplexity</strong> real buyer questions: "Find me [your capability] manufacturers" and capture the responses.</div>
                 </div>
                 <div class="explainer-step">
                     <div class="step-number">3</div>
-                    <div class="step-title">Competitive Intelligence</div>
-                    <div class="step-desc">We identify which <strong>vertical competitors</strong> ARE being recommended - and how often they appear instead of you</div>
+                    <div class="step-title">You See Who's Winning</div>
+                    <div class="step-desc">We show you exactly which competitors ARE being recommended, how many times, and what you need to do to outrank them.</div>
                 </div>
             </div>
-            <div style="margin-top: 20px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; font-size: 0.9rem; text-align: center;">
-                <strong>⚡ Live Test:</strong> We analyze your website, extract keywords, and make real API calls to GPT-5 and Perplexity. Takes ~30 seconds.
+            <div style="margin-top: 25px; padding: 20px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center; font-size: 0.85rem;">
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-blue);">16+</div>
+                        <div style="color: var(--text-muted);">AI Queries Run</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-purple);">2</div>
+                        <div style="color: var(--text-muted);">AI Platforms</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-green);">~60s</div>
+                        <div style="color: var(--text-muted);">Analysis Time</div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -786,78 +805,89 @@
         <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
             <div class="modal-content" onclick="event.stopPropagation()">
                 <button class="modal-close" onclick="closeModal()">×</button>
-                <h2>🎯 How This Works</h2>
+                <h2>🎯 Full Methodology</h2>
                 
                 <div class="modal-section">
-                    <h3>🚨 The Problem: AI is Replacing Google</h3>
-                    <p>B2B buyers are changing how they research. Instead of scrolling through Google results, they're asking AI directly:</p>
-                    <ul style="font-style: italic; color: var(--text-secondary);">
-                        <li>"Who are the best CNC machining companies in Denver?"</li>
-                        <li>"I need a quote for injection molding services"</li>
-                        <li>"Compare the top aerospace manufacturers near me"</li>
+                    <h3>🚨 Why This Matters</h3>
+                    <p>B2B buyers are increasingly using AI to find vendors:</p>
+                    <ul>
+                        <li><strong>ChatGPT</strong> has 200M+ weekly users asking "who's the best X manufacturer?"</li>
+                        <li><strong>Perplexity</strong> is replacing Google for research queries</li>
+                        <li>When AI doesn't mention you, buyers go straight to competitors - they never even see your website</li>
                     </ul>
-                    <p><strong>If AI doesn't mention you, you're invisible to these buyers.</strong> They'll never see your website, never request a quote, never become a customer.</p>
                 </div>
                 
                 <div class="modal-section">
-                    <h3>🔬 Our Testing Methodology</h3>
-                    <p>We don't use cached data or estimates. We make <strong>real API calls</strong> to two leading AI platforms:</p>
-                    <table style="width: 100%; margin: 15px 0; border-collapse: collapse; font-size: 0.9rem;">
-                        <tr style="background: rgba(59, 130, 246, 0.1);">
-                            <td style="padding: 10px; border: 1px solid var(--border);"><strong>🤖 OpenAI GPT-5</strong></td>
-                            <td style="padding: 10px; border: 1px solid var(--border);">The most widely used AI assistant (ChatGPT)</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid var(--border);"><strong>🔮 Perplexity AI</strong></td>
-                            <td style="padding: 10px; border: 1px solid var(--border);">AI-powered search engine with real-time web access</td>
-                        </tr>
-                    </table>
-                    <p><strong>Query Types We Test:</strong></p>
+                    <h3>📍 Step 1: Keyword Extraction</h3>
+                    <p>We use <strong>Perplexity AI</strong> to analyze your website and extract:</p>
                     <ul>
-                        <li><strong>Research queries:</strong> "What are the best [service] companies in [your city]?"</li>
-                        <li><strong>Supplier queries:</strong> "Who are the best [specific capability] manufacturers?"</li>
-                        <li><strong>Quote queries:</strong> "I need a quote for [specific capability] services"</li>
+                        <li><strong>Primary Keyword:</strong> Your most specific, searchable capability (e.g., "investment casting", "5-axis CNC machining")</li>
+                        <li><strong>Secondary Keywords:</strong> Other processes, materials, or certifications you offer</li>
+                        <li><strong>Vertical:</strong> Your industry category (Aerospace, Medical, Automotive, etc.)</li>
                     </ul>
-                    <p style="background: rgba(34, 197, 94, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px;">
-                        <strong>✓ Vertical-Specific:</strong> We extract your unique manufacturing keywords and test visibility against vertical competitors.
+                    <p style="background: rgba(59, 130, 246, 0.1); padding: 10px; border-radius: 8px;">
+                        <strong>Why AI extraction?</strong> We find keywords buyers actually search for - not generic marketing terms.
                     </p>
                 </div>
                 
                 <div class="modal-section">
-                    <h3>📊 What You'll See</h3>
-                    <ol>
-                        <li><strong>Visibility Score (0-100%)</strong> - Percentage of AI queries that mention your company</li>
-                        <li><strong>Platform Breakdown</strong> - How you perform on GPT-5 vs Perplexity separately</li>
-                        <li><strong>Full AI Responses</strong> - See exactly what each AI said, word for word</li>
-                        <li><strong>Competitor Analysis</strong> - Which companies ARE getting recommended (your competition)</li>
-                        <li><strong>Revenue Impact</strong> - Estimated opportunity cost based on industry benchmarks</li>
-                        <li><strong>PDF Report</strong> - Export everything to share with your team</li>
-                    </ol>
+                    <h3>🔍 Step 2: AI Visibility Queries</h3>
+                    <p>We query <strong>both ChatGPT and Perplexity</strong> with real buyer questions:</p>
+                    <table style="width: 100%; margin: 15px 0; border-collapse: collapse; font-size: 0.85rem;">
+                        <tr style="background: rgba(59, 130, 246, 0.1);">
+                            <td style="padding: 8px; border: 1px solid var(--border);"><strong>Query Type</strong></td>
+                            <td style="padding: 8px; border: 1px solid var(--border);"><strong>Example</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid var(--border);">Research</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">"What companies offer [keyword] services?"</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid var(--border);">Quote</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">"I need [keyword] for a project - who should I contact?"</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid var(--border);">Supplier</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">"Best [keyword] suppliers for [vertical] applications"</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid var(--border);">Compare</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">"Compare the top [keyword] companies"</td>
+                        </tr>
+                    </table>
+                    <p>We run <strong>8+ queries per platform</strong> (16+ total) to get statistically meaningful results.</p>
                 </div>
                 
                 <div class="modal-section">
-                    <h3>📉 Why Most Scores Are Low</h3>
-                    <p>Don't be alarmed if you score under 20% - that's typical. Here's why:</p>
+                    <h3>📊 Step 3: Analysis</h3>
+                    <p>For each AI response, we check:</p>
                     <ul>
-                        <li>AI models are trained on web content, and most B2B sites aren't optimized for AI</li>
-                        <li>AI prefers authoritative sources: directories, news mentions, case studies</li>
-                        <li>Local businesses are harder for AI to discover than national brands</li>
+                        <li>Did they mention your company name or domain?</li>
+                        <li>Which competitors were mentioned instead?</li>
+                        <li>What snippets did the AI actually say?</li>
                     </ul>
-                    <p><strong>The good news?</strong> Your competitors probably score low too. This is a new channel - the companies that optimize first will capture the market.</p>
+                    <p>This gives you your <strong>visibility score</strong> and a clear picture of who's winning in AI search.</p>
                 </div>
                 
                 <div class="modal-section">
-                    <h3>🛠️ How to Improve Your Score</h3>
-                    <p>AI visibility is trainable. Here's what works:</p>
+                    <h3>📉 Why Scores Are Often Low</h3>
+                    <p>Don't panic if you score under 30% - that's normal:</p>
                     <ul>
-                        <li><strong>Website Content:</strong> Use the exact language buyers search for (specific capabilities, processes, materials)</li>
-                        <li><strong>Published Authority:</strong> Case studies, guides, and FAQs that AI can cite as sources</li>
-                        <li><strong>Digital Footprint:</strong> Industry directories, Google Business Profile, customer reviews, press mentions</li>
-                        <li><strong>Structured Data:</strong> Schema markup that helps AI understand your services</li>
+                        <li>Most B2B websites aren't optimized for AI discovery</li>
+                        <li>AI favors companies with strong online authority (directories, case studies, reviews)</li>
+                        <li>Niche manufacturers are harder to find than big national brands</li>
                     </ul>
-                    <p style="background: rgba(139, 92, 246, 0.1); padding: 12px; border-radius: 8px; margin-top: 15px; text-align: center;">
-                        <strong>Want help improving your AI visibility?</strong><br>
-                        <span style="font-size: 0.9rem;">We offer AIO optimization services. Contact us after running your report.</span>
+                    <p><strong>The opportunity:</strong> Your competitors are likely scoring low too. Companies that optimize now will dominate this channel.</p>
+                </div>
+                
+                <div class="modal-section">
+                    <h3>🔑 Bring Your Own API Keys</h3>
+                    <p>You can use your own API keys for unlimited analysis:</p>
+                    <ul>
+                        <li><strong>Perplexity:</strong> Get a key at <a href="https://perplexity.ai/settings/api" target="_blank" style="color: var(--accent-blue);">perplexity.ai/settings/api</a></li>
+                        <li><strong>OpenAI:</strong> Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" style="color: var(--accent-blue);">platform.openai.com/api-keys</a></li>
+                    </ul>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">Keys are never stored - only used for your analysis session.</p>
                     </p>
                 </div>
             </div>
@@ -1073,7 +1103,7 @@
         </div>
         
         <div class="footer">
-            <p>Powered by <a href="https://marketmagnetix.agency" target="_blank" style="color: #3b82f6;">MarketMagnetix Media Group</a> • AI Visibility Analysis</p>
+            <p>Powered by <a href="https://leadgenjay.com" target="_blank" style="color: #3b82f6;">Lead Gen Jay</a> • AI Visibility Analysis for Manufacturers</p>
         </div>
     </div>
     
