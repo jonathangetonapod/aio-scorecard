@@ -38,6 +38,9 @@ class AnalyzeRequest(BaseModel):
     primary_keyword: Optional[str] = None
     keywords: Optional[list] = None
     location: Optional[str] = None
+    # API keys (optional - falls back to env vars)
+    perplexity_key: Optional[str] = None
+    openai_key: Optional[str] = None
     # Legacy field
     services: Optional[list] = None
 
@@ -129,7 +132,11 @@ async def analyze_domain(req: AnalyzeRequest):
         if not req.company_name or not req.primary_keyword:
             print(f"🔍 Auto-detecting info for {req.domain}...")
             try:
-                info = await detect_from_domain(req.domain)
+                info = await detect_from_domain(
+                    req.domain,
+                    perplexity_key=req.perplexity_key,
+                    openai_key=req.openai_key
+                )
                 
                 if not req.company_name:
                     req.company_name = info.company_name or req.domain.split('.')[0].title()
@@ -156,12 +163,12 @@ async def analyze_domain(req: AnalyzeRequest):
         if req.keywords:
             print(f"   Keywords: {', '.join(req.keywords[:5])}")
         
-        # Run visibility check
-        perplexity_key = os.getenv('PERPLEXITY_API_KEY')
-        openai_key = os.getenv('OPENAI_API_KEY')
+        # Run visibility check - use request keys if provided, fallback to env
+        perplexity_key = req.perplexity_key or os.getenv('PERPLEXITY_API_KEY')
+        openai_key = req.openai_key or os.getenv('OPENAI_API_KEY')
         
         if not perplexity_key and not openai_key:
-            raise HTTPException(status_code=500, detail="No AI API keys configured")
+            raise HTTPException(status_code=500, detail="No AI API keys provided. Please add your Perplexity or OpenAI API key.")
         
         checker = AIChecker(
             perplexity_key=perplexity_key,

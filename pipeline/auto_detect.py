@@ -344,13 +344,15 @@ Respond in JSON only:
         return None
 
 
-async def detect_from_domain(domain: str, use_llm: bool = True) -> CompanyInfo:
+async def detect_from_domain(domain: str, use_llm: bool = True, perplexity_key: str = None, openai_key: str = None) -> CompanyInfo:
     """
     Auto-detect company info from domain.
     
     Args:
         domain: Website domain to analyze
-        use_llm: If True, use GPT-4o-mini for intelligent extraction (recommended)
+        use_llm: If True, use LLM for intelligent extraction (recommended)
+        perplexity_key: Optional Perplexity API key (falls back to env)
+        openai_key: Optional OpenAI API key (falls back to env)
     """
     info = CompanyInfo(domain=domain)
     
@@ -392,16 +394,17 @@ async def detect_from_domain(domain: str, use_llm: bool = True) -> CompanyInfo:
             combined_text = f"{info.company_name} {info.description} {page_text}"
             
             # Try LLM extraction first (smarter)
-            openai_key = os.getenv('OPENAI_API_KEY')
-            perplexity_key = os.getenv('PERPLEXITY_API_KEY')
+            # Use passed keys or fall back to env
+            _openai_key = openai_key or os.getenv('OPENAI_API_KEY')
+            _perplexity_key = perplexity_key or os.getenv('PERPLEXITY_API_KEY')
             
-            if use_llm and (openai_key or perplexity_key):
+            if use_llm and (_openai_key or _perplexity_key):
                 print(f"  🤖 Using LLM to analyze {domain_clean}...")
                 llm_result = await extract_with_llm(
                     combined_text, 
                     info.company_name, 
-                    openai_key=openai_key,
-                    perplexity_key=perplexity_key
+                    openai_key=_openai_key,
+                    perplexity_key=_perplexity_key
                 )
                 
                 if llm_result:
