@@ -1430,41 +1430,48 @@
                 </div>
             `;
             
-            // Recommendations
+            // Recommendations - actionable and specific
             const recs = [];
+            const kw = data.primary_keyword || data.vertical;
+            const topCompDomain = validCompetitors.length > 0 ? validCompetitors[0].domain : null;
             
+            // Always show: optimize website for the keyword
+            recs.push({
+                icon: '🎯',
+                title: `Optimize for "${kw}"`,
+                desc: `Make sure "${kw}" appears prominently on your homepage, services page, and meta descriptions. AI pulls from your website content - if the keyword isn't there, you won't rank for it.`
+            });
+            
+            // If low score, add content recommendation
             if (score < 50) {
                 recs.push({
-                    icon: '🌐',
-                    title: 'Strengthen Your Website Content',
-                    desc: `AI learns from web content. Make sure your site clearly states your specific capabilities like "${data.primary_keyword || data.vertical}". Use the exact terms buyers search for.`
+                    icon: '📝',
+                    title: `Create a "${kw}" Landing Page`,
+                    desc: `Build a dedicated page targeting "${kw}" with detailed specs, capabilities, case studies, and FAQs. This gives AI something specific to cite when recommending you.`
                 });
             }
             
-            recs.push({
-                icon: '📝',
-                title: 'Publish Expert Content',
-                desc: 'Write case studies, how-to guides, and industry insights. AI often cites authoritative sources. The more helpful content you publish, the more likely AI will reference you.'
-            });
-            
-            if (data.competitors.length > 0) {
+            // Competitor analysis if we have data
+            if (topCompDomain) {
                 recs.push({
                     icon: '🔍',
-                    title: 'Study What\'s Working for Competitors',
-                    desc: `${data.competitors[0].domain} is getting ${data.competitors[0].mentions}× mentions. Look at their website, content strategy, and online presence to understand what makes them visible to AI.`
+                    title: `Analyze ${topCompDomain}`,
+                    desc: `They're getting ${validCompetitors[0].mentions}x mentions. Study their website structure, content, and how they describe their ${kw} capabilities. What are they doing that you're not?`
                 });
             }
             
+            // Authority building
             recs.push({
-                icon: '📊',
-                title: 'Get Listed Everywhere',
-                desc: 'Industry directories, review sites, Google Business Profile, and business listings all help AI understand and recommend your business. More citations = more visibility.'
+                icon: '🏆',
+                title: 'Build Authority Signals',
+                desc: `Get listed on industry directories (ThomasNet, Kompass), publish case studies, get customer reviews. AI trusts companies with multiple credible mentions across the web.`
             });
             
+            // Schema/technical
             recs.push({
-                icon: '🔄',
-                title: 'Track Your Progress',
-                desc: 'AI models update regularly. Run this analysis monthly to track improvements and catch changes in your competitive landscape.'
+                icon: '⚙️',
+                title: 'Add Structured Data',
+                desc: `Add Schema.org markup to your website (Organization, Product, Service). This helps AI understand exactly what you offer and improves your chances of being recommended.`
             });
             
             document.getElementById('recommendations').innerHTML = recs.map(r => `
