@@ -1,0 +1,15 @@
+# AI Chat - Free, no API key
+duckduckgo-search>=7.0.0
+
+# Perplexity (optional, needs key)
+httpx>=0.27.0
+
+# Web scraping utilities
+beautifulsoup4>=4.12.0
+
+# Frontend
+fastapi>=0.115.0
+uvicorn>=0.32.0
+
+# Utilities
+python-dotenv>=1.0.0

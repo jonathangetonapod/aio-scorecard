@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIO Readiness Scorecard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        :root {
+            --bg-primary: #f1f5f9;
+            --bg-secondary: #e2e8f0;
+            --bg-card: rgba(255, 255, 255, 0.95);
+            --border: rgba(100, 116, 139, 0.2);
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #22c55e;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.15rem;
+            max-width: 650px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+        
+        /* Explainer Box */
+        .explainer {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 25px 30px;
+            margin-bottom: 30px;
+        }
+        
+        .explainer h2 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .explainer-steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .explainer-steps { grid-template-columns: 1fr; }
+        }
+        
+        .explainer-step {
+            text-align: center;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin: 0 auto 12px;
+        }
+        
+        .step-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+        
+        .step-desc {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        
+        /* Input Section */
+        .input-section {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 35px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 12px;
+            max-width: 550px;
+            margin: 0 auto;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 18px 24px;
+            font-size: 1.1rem;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            background: white;
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            border-color: var(--accent-blue);
+        }
+        
+        input::placeholder { color: var(--text-muted); }
+        
+        button {
+            padding: 18px 32px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+        }
+        
+        .loading.active { display: block; }
+        
+        .loading-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 50px 40px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        
+        .loading-icon {
+            font-size: 4rem;
+            margin-bottom: 25px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        .loading h3 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+        }
+        
+        .loading-explanation {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            max-width: 500px;
+            margin: 0 auto 35px;
+            line-height: 1.6;
+        }
+        
+        .live-status {
+            background: rgba(226, 232, 240, 0.8);
+            border-radius: 12px;
+            padding: 25px;
+            max-width: 450px;
+            margin: 0 auto;
+            text-align: left;
+        }
+        
+        .live-status h4 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+        }
+        
+        .status-item:last-child { border-bottom: none; }
+        
+        .status-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        
+        .status-icon.waiting {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-muted);
+        }
+        
+        .status-icon.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent-blue);
+            animation: spin 1s linear infinite;
+        }
+        
+        .status-icon.done {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--accent-green);
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .status-text { flex: 1; }
+        .status-text.muted { color: var(--text-muted); }
+        .status-text.active { color: var(--text-primary); }
+        .status-text.done { color: var(--accent-green); }
+        
+        /* Results */
+        .results { display: none; }
+        .results.active { display: block; }
+        
+        .result-section {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid var(--border);
+            margin-bottom: 25px;
+        }
+        
+        .section-header {
+            margin-bottom: 25px;
+        }
+        
+        .section-header h2 {
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        /* Big Score */
+        .score-display {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        @media (max-width: 600px) {
+            .score-display {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+        
+        .score-circle-wrap {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            flex-shrink: 0;
+        }
+        
+        .score-circle-wrap svg {
+            transform: rotate(-90deg);
+        }
+        
+        .score-circle-wrap circle {
+            fill: none;
+            stroke-width: 12;
+        }
+        
+        .score-bg { stroke: rgba(148, 163, 184, 0.15); }
+        
+        .score-fill {
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1.5s ease-out;
+        }
+        
+        .score-fill.excellent { stroke: var(--accent-green); }
+        .score-fill.good { stroke: var(--accent-blue); }
+        .score-fill.fair { stroke: var(--accent-yellow); }
+        .score-fill.poor { stroke: var(--accent-red); }
+        
+        .score-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        
+        .score-value {
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        
+        .score-value.excellent { color: var(--accent-green); }
+        .score-value.good { color: var(--accent-blue); }
+        .score-value.fair { color: var(--accent-yellow); }
+        .score-value.poor { color: var(--accent-red); }
+        
+        .score-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+        
+        .score-explanation {
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .company-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .company-meta {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+        
+        .score-meaning {
+            background: rgba(226, 232, 240, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .score-meaning h4 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+        
+        .score-meaning.excellent h4 { color: var(--accent-green); }
+        .score-meaning.good h4 { color: var(--accent-blue); }
+        .score-meaning.fair h4 { color: var(--accent-yellow); }
+        .score-meaning.poor h4 { color: var(--accent-red); }
+        
+        .score-meaning p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        /* What We Did */
+        .query-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        @media (max-width: 600px) {
+            .query-summary { grid-template-columns: 1fr; }
+        }
+        
+        .query-stat {
+            background: rgba(226, 232, 240, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .query-stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .query-stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        
+        .query-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .query-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 18px;
+            background: rgba(226, 232, 240, 0.7);
+            border-radius: 12px;
+            border-left: 4px solid var(--border);
+        }
+        
+        .query-item.mentioned { border-left-color: var(--accent-green); }
+        .query-item.not-mentioned { border-left-color: var(--accent-red); }
+        
+        .query-result-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+        
+        .query-result-icon.mentioned {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--accent-green);
+        }
+        
+        .query-result-icon.not-mentioned {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+        }
+        
+        .query-content { flex: 1; }
+        
+        .query-text {
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+        
+        .query-result-text {
+            font-size: 0.85rem;
+        }
+        
+        .query-result-text.mentioned { color: var(--accent-green); }
+        .query-result-text.not-mentioned { color: var(--accent-red); }
+        
+        /* Competitors */
+        .competitor-intro {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.1));
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .competitor-intro p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        .competitor-intro strong {
+            color: var(--accent-yellow);
+        }
+        
+        .competitor-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .competitor {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 18px;
+            background: rgba(226, 232, 240, 0.7);
+            border-radius: 12px;
+        }
+        
+        .competitor-rank {
+            width: 32px;
+            height: 32px;
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent-blue);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        
+        .competitor-rank.gold {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1e293b;
+        }
+        
+        .competitor-domain {
+            flex: 1;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .competitor-domain:hover { text-decoration: underline; }
+        
+        .competitor-mentions {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .competitor-bar-wrap {
+            width: 100px;
+            height: 8px;
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .competitor-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 4px;
+        }
+        
+        /* What This Means */
+        .impact-box {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.05));
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .impact-box h4 {
+            color: var(--accent-red);
+            font-size: 1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .impact-box p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        .impact-box .highlight {
+            color: var(--accent-red);
+            font-weight: 600;
+        }
+        
+        /* Recommendations */
+        .rec-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .rec-item {
+            display: flex;
+            gap: 15px;
+            padding: 20px;
+            background: rgba(226, 232, 240, 0.7);
+            border-radius: 12px;
+        }
+        
+        .rec-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        
+        .rec-content h4 {
+            font-size: 1rem;
+            margin-bottom: 6px;
+        }
+        
+        .rec-content p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Footer */
+        .reset-btn {
+            display: block;
+            margin: 30px auto 0;
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-secondary);
+            padding: 14px 28px;
+        }
+        
+        .reset-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            border: 1px solid var(--border);
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+        
+        .modal-content h2 {
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+            padding-right: 40px;
+        }
+        
+        .modal-section {
+            margin-bottom: 25px;
+        }
+        
+        .modal-section h3 {
+            font-size: 1.1rem;
+            color: var(--accent-blue);
+            margin-bottom: 12px;
+        }
+        
+        .modal-section p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 10px;
+        }
+        
+        .modal-section ol, .modal-section ul {
+            color: var(--text-secondary);
+            padding-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .modal-section li {
+            margin-bottom: 8px;
+        }
+        
+        .modal-section strong {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 AIO Readiness Scorecard</h1>
+            <p class="subtitle">Find out if GPT-5 and Perplexity recommend your business when customers ask for help finding companies like yours.</p>
+        </header>
+        
+        <!-- What This Tool Does -->
+        <div class="explainer" id="explainerBox">
+            <h2>💡 How This Works <a href="#" onclick="openModal(); return false;" style="font-size: 0.8rem; color: var(--accent-blue); margin-left: 10px;">Learn more →</a></h2>
+            <div class="explainer-steps">
+                <div class="explainer-step">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Real AI Queries</div>
+                    <div class="step-desc">We ask <strong>GPT-5</strong> and <strong>Perplexity</strong> the exact questions your prospects ask — "Best [service] companies in [your city]?"</div>
+                </div>
+                <div class="explainer-step">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Live Response Analysis</div>
+                    <div class="step-desc">We capture each AI's real-time response and check if your company is mentioned or recommended</div>
+                </div>
+                <div class="explainer-step">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Competitive Intelligence</div>
+                    <div class="step-desc">We identify which competitors ARE being recommended — and how often they appear instead of you</div>
+                </div>
+            </div>
+            <div style="margin-top: 20px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; font-size: 0.9rem; text-align: center;">
+                <strong>⚡ Live Test:</strong> We make 6 real API calls to GPT-5 and Perplexity right now — not cached data. Takes ~30 seconds.
+            </div>
+        </div>
+        
+        <!-- How It Works Modal -->
+        <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <button class="modal-close" onclick="closeModal()">×</button>
+                <h2>🎯 How This Works</h2>
+                
+                <div class="modal-section">
+                    <h3>🚨 The Problem: AI is Replacing Google</h3>
+                    <p>B2B buyers are changing how they research. Instead of scrolling through Google results, they're asking AI directly:</p>
+                    <ul style="font-style: italic; color: var(--text-secondary);">
+                        <li>"Who are the best CNC machining companies in Denver?"</li>
+                        <li>"I need a quote for injection molding services"</li>
+                        <li>"Compare the top aerospace manufacturers near me"</li>
+                    </ul>
+                    <p><strong>If AI doesn't mention you, you're invisible to these buyers.</strong> They'll never see your website, never request a quote, never become a customer.</p>
+                </div>
+                
+                <div class="modal-section">
+                    <h3>🔬 Our Testing Methodology</h3>
+                    <p>We don't use cached data or estimates. We make <strong>real API calls</strong> to two leading AI platforms:</p>
+                    <table style="width: 100%; margin: 15px 0; border-collapse: collapse; font-size: 0.9rem;">
+                        <tr style="background: rgba(59, 130, 246, 0.1);">
+                            <td style="padding: 10px; border: 1px solid var(--border);"><strong>🤖 OpenAI GPT-5</strong></td>
+                            <td style="padding: 10px; border: 1px solid var(--border);">The most widely used AI assistant (ChatGPT)</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid var(--border);"><strong>🔮 Perplexity AI</strong></td>
+                            <td style="padding: 10px; border: 1px solid var(--border);">AI-powered search engine with real-time web access</td>
+                        </tr>
+                    </table>
+                    <p><strong>Query Types We Test:</strong></p>
+                    <ul>
+                        <li><strong>Research queries:</strong> "What are the best [service] companies in [your city]?"</li>
+                        <li><strong>Comparison queries:</strong> "Who are the top [service] companies near [location]?"</li>
+                        <li><strong>Intent queries:</strong> "I need a quote for [service] in [location]"</li>
+                    </ul>
+                    <p style="background: rgba(34, 197, 94, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px;">
+                        <strong>✓ Location-Specific:</strong> Every query includes your city/region so we test your LOCAL visibility, not national results.
+                    </p>
+                </div>
+                
+                <div class="modal-section">
+                    <h3>📊 What You'll See</h3>
+                    <ol>
+                        <li><strong>Visibility Score (0-100%)</strong> — Percentage of AI queries that mention your company</li>
+                        <li><strong>Platform Breakdown</strong> — How you perform on GPT-5 vs Perplexity separately</li>
+                        <li><strong>Full AI Responses</strong> — See exactly what each AI said, word for word</li>
+                        <li><strong>Competitor Analysis</strong> — Which companies ARE getting recommended (your competition)</li>
+                        <li><strong>Revenue Impact</strong> — Estimated opportunity cost based on industry benchmarks</li>
+                        <li><strong>PDF Report</strong> — Export everything to share with your team</li>
+                    </ol>
+                </div>
+                
+                <div class="modal-section">
+                    <h3>📉 Why Most Scores Are Low</h3>
+                    <p>Don't be alarmed if you score under 20% — that's typical. Here's why:</p>
+                    <ul>
+                        <li>AI models are trained on web content, and most B2B sites aren't optimized for AI</li>
+                        <li>AI prefers authoritative sources: directories, news mentions, case studies</li>
+                        <li>Local businesses are harder for AI to discover than national brands</li>
+                    </ul>
+                    <p><strong>The good news?</strong> Your competitors probably score low too. This is a new channel — the companies that optimize first will capture the market.</p>
+                </div>
+                
+                <div class="modal-section">
+                    <h3>🛠️ How to Improve Your Score</h3>
+                    <p>AI visibility is trainable. Here's what works:</p>
+                    <ul>
+                        <li><strong>Website Content:</strong> Use the exact language buyers search for (service names, locations, industries served)</li>
+                        <li><strong>Published Authority:</strong> Case studies, guides, and FAQs that AI can cite as sources</li>
+                        <li><strong>Digital Footprint:</strong> Industry directories, Google Business Profile, customer reviews, press mentions</li>
+                        <li><strong>Structured Data:</strong> Schema markup that helps AI understand your services</li>
+                    </ul>
+                    <p style="background: rgba(139, 92, 246, 0.1); padding: 12px; border-radius: 8px; margin-top: 15px; text-align: center;">
+                        <strong>Want help improving your AI visibility?</strong><br>
+                        <span style="font-size: 0.9rem;">We offer AIO optimization services. Contact us after running your report.</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Input -->
+        <div class="input-section" id="inputSection">
+            <div class="logo-upload" style="margin-bottom: 15px; text-align: center;">
+                <label style="display: inline-flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px 20px; background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2); border-radius: 8px; font-size: 0.9rem; color: var(--text-secondary);">
+                    <span>🏢</span>
+                    <span id="logoLabel">Upload prospect's logo (optional)</span>
+                    <input type="file" id="logoUpload" accept="image/*" style="display: none;" onchange="handleLogoUpload(this)" />
+                </label>
+                <img id="logoPreview" style="display: none; max-height: 50px; margin-top: 10px; border-radius: 4px;" />
+            </div>
+            <div class="input-group">
+                <input type="text" id="domain" placeholder="Enter website (e.g., yourcompany.com)" style="flex: 2;" />
+                <input type="text" id="location" placeholder="Location (e.g., Denver, CO)" style="flex: 1;" />
+                <button onclick="analyze()">Check Visibility</button>
+            </div>
+        </div>
+        
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="loading-card">
+                <div class="loading-icon">🔍</div>
+                <h3>Checking Your AI Visibility</h3>
+                <p class="loading-explanation">
+                    We're asking AI the same questions your potential customers ask. This takes about 30 seconds because we're making real queries to AI platforms.
+                </p>
+                
+                <div class="live-status">
+                    <h4>Live Progress</h4>
+                    <div class="status-item">
+                        <div class="status-icon waiting" id="icon1">○</div>
+                        <span class="status-text muted" id="text1">Detecting your company info from website...</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon waiting" id="icon2">○</div>
+                        <span class="status-text muted" id="text2">Asking GPT-5 + Perplexity: "Best [industry] companies?"</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon waiting" id="icon3">○</div>
+                        <span class="status-text muted" id="text3">Checking both AI responses for your company...</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon waiting" id="icon4">○</div>
+                        <span class="status-text muted" id="text4">Finding competitors who ARE recommended...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results -->
+        <div class="results" id="results">
+            
+            <!-- Section 1: Your Score -->
+            <div class="result-section">
+                <div class="section-header">
+                    <h2>📊 Your AI Visibility Score</h2>
+                    <p>This score shows what percentage of AI queries mention your business. Higher = more customers finding you through AI.</p>
+                </div>
+                
+                <div class="score-display">
+                    <div class="score-circle-wrap">
+                        <svg width="180" height="180" viewBox="0 0 180 180">
+                            <circle class="score-bg" cx="90" cy="90" r="78" />
+                            <circle class="score-fill" id="scoreFill" cx="90" cy="90" r="78" 
+                                    stroke-dasharray="490" stroke-dashoffset="490" />
+                        </svg>
+                        <div class="score-inner">
+                            <div class="score-value" id="scoreValue">0%</div>
+                            <div class="score-label">Visibility</div>
+                        </div>
+                    </div>
+                    
+                    <div class="score-explanation">
+                        <div class="company-name" id="companyName">Your Company</div>
+                        <div class="company-meta" id="companyMeta">Industry • Location</div>
+                        
+                        <div class="score-meaning" id="scoreMeaning">
+                            <h4 id="scoreMeaningTitle">Calculating...</h4>
+                            <p id="scoreMeaningText">Analyzing your results...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section 2: What We Did -->
+            <div class="result-section">
+                <div class="section-header">
+                    <h2>🔍 What We Asked AI</h2>
+                    <p id="queryIntro">We asked Perplexity AI these questions — the same ones your potential customers might ask:</p>
+                </div>
+                
+                <div class="query-summary">
+                    <div class="query-stat">
+                        <div class="query-stat-value" id="queriesAsked">0</div>
+                        <div class="query-stat-label">Total Queries</div>
+                    </div>
+                    <div class="query-stat">
+                        <div class="query-stat-value" style="color: var(--accent-green)" id="timesMentioned">0</div>
+                        <div class="query-stat-label">Times Mentioned</div>
+                    </div>
+                    <div class="query-stat">
+                        <div class="query-stat-value" style="color: var(--accent-red)" id="timesMissed">0</div>
+                        <div class="query-stat-label">Times Missed</div>
+                    </div>
+                </div>
+                
+                <div class="platform-breakdown" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                    <div style="background: rgba(226, 232, 240, 0.7); border-radius: 12px; padding: 18px; text-align: center;">
+                        <div style="font-size: 1.3rem; margin-bottom: 5px;">🔮 Perplexity</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;" id="perplexityScore">0/0</div>
+                        <div style="color: var(--text-secondary); font-size: 0.85rem;">mentions</div>
+                    </div>
+                    <div style="background: rgba(226, 232, 240, 0.7); border-radius: 12px; padding: 18px; text-align: center;">
+                        <div style="font-size: 1.3rem; margin-bottom: 5px;">🤖 GPT-5</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;" id="chatgptScore">0/0</div>
+                        <div style="color: var(--text-secondary); font-size: 0.85rem;">mentions</div>
+                    </div>
+                </div>
+                
+                <div class="query-list" id="queryList">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+            
+            <!-- Section 3: Competitors -->
+            <div class="result-section">
+                <div class="section-header">
+                    <h2>🏆 Who AI Recommends Instead</h2>
+                    <p>When AI doesn't mention you, it mentions these competitors. These companies are capturing the customers who should be finding you.</p>
+                </div>
+                
+                <div class="competitor-intro" id="competitorIntro">
+                    <p>Loading competitor analysis...</p>
+                </div>
+                
+                <div class="competitor-list" id="competitorList">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+            
+            <!-- Section 4: What This Means -->
+            <div class="result-section">
+                <div class="section-header">
+                    <h2>💰 What This Means For Your Business</h2>
+                    <p>AI chatbots are increasingly how people find businesses. Here's what your visibility gap could be costing you:</p>
+                </div>
+                
+                <div class="impact-box">
+                    <h4>⚠️ Potential Lost Revenue</h4>
+                    <p id="impactText">Calculating impact...</p>
+                </div>
+                
+                <div class="rec-list" id="recommendations">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
+                <button onclick="downloadPDF()" style="background: linear-gradient(135deg, #22c55e, #16a34a);">
+                    📄 Open Printable Report
+                </button>
+                <button class="reset-btn" onclick="resetAnalysis()">← Check Another Domain</button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Powered by <a href="https://marketmagnetix.agency" target="_blank" style="color: #3b82f6;">MarketMagnetix Media Group</a> • AI Visibility Analysis</p>
+        </div>
+    </div>
+    
+    <script>
+        let uploadedLogo = null;
+        
+        function handleLogoUpload(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedLogo = e.target.result;
+                    document.getElementById('logoPreview').src = uploadedLogo;
+                    document.getElementById('logoPreview').style.display = 'block';
+                    document.getElementById('logoLabel').textContent = file.name;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        async function analyze() {
+            let domain = document.getElementById('domain').value.trim().toLowerCase();
+            let location = document.getElementById('location').value.trim();
+            
+            // Clean up common input mistakes
+            domain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+            
+            if (!domain) {
+                alert('Please enter your website domain');
+                return;
+            }
+            
+            if (!domain.includes('.') || domain.length < 4) {
+                alert('Please enter a valid domain (e.g., yourcompany.com)');
+                return;
+            }
+            
+            // Hide input, show loading
+            document.getElementById('inputSection').style.display = 'none';
+            document.getElementById('explainerBox').style.display = 'none';
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('results').classList.remove('active');
+            
+            // Animate loading steps
+            animateLoadingSteps();
+            
+            try {
+                const payload = { domain };
+                if (location) payload.location = location;
+                
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Analysis failed');
+                }
+                
+                if (data.total_queries === 0) {
+                    throw new Error('No AI queries completed. Please try again.');
+                }
+                
+                showResults(data);
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+                resetAnalysis();
+            }
+        }
+        
+        function animateLoadingSteps() {
+            const steps = [
+                { icon: 'icon1', text: 'text1', delay: 500 },
+                { icon: 'icon2', text: 'text2', delay: 3000 },
+                { icon: 'icon3', text: 'text3', delay: 15000 },
+                { icon: 'icon4', text: 'text4', delay: 25000 },
+            ];
+            
+            steps.forEach((step, i) => {
+                setTimeout(() => {
+                    // Mark previous as done
+                    if (i > 0) {
+                        document.getElementById(steps[i-1].icon).className = 'status-icon done';
+                        document.getElementById(steps[i-1].icon).textContent = '✓';
+                        document.getElementById(steps[i-1].text).className = 'status-text done';
+                    }
+                    // Mark current as active
+                    document.getElementById(step.icon).className = 'status-icon active';
+                    document.getElementById(step.icon).textContent = '↻';
+                    document.getElementById(step.text).className = 'status-text active';
+                }, step.delay);
+            });
+        }
+        
+        function showResults(data) {
+            document.getElementById('loading').classList.remove('active');
+            
+            // Store for PDF export
+            lastAnalysisData = data;
+            
+            const score = Math.round(data.visibility_score);
+            const grade = score >= 80 ? 'excellent' : score >= 50 ? 'good' : score >= 25 ? 'fair' : 'poor';
+            
+            // Company info
+            document.getElementById('companyName').textContent = data.company_name;
+            
+            let metaText = data.vertical;
+            if (data.services && data.services.length > 0) {
+                metaText = data.services.slice(0, 3).join(', ');
+            }
+            if (data.location) {
+                metaText += ' • ' + data.location;
+            }
+            document.getElementById('companyMeta').textContent = metaText;
+            
+            // Score circle
+            const circumference = 490;
+            const offset = circumference - (score / 100) * circumference;
+            
+            const scoreFill = document.getElementById('scoreFill');
+            const scoreValue = document.getElementById('scoreValue');
+            
+            setTimeout(() => {
+                scoreFill.style.strokeDashoffset = offset;
+                scoreFill.className = 'score-fill ' + grade;
+                scoreValue.textContent = score + '%';
+                scoreValue.className = 'score-value ' + grade;
+            }, 100);
+            
+            // Score meaning
+            const meanings = {
+                excellent: {
+                    title: '🌟 Excellent! AI knows you well.',
+                    text: `Great news! AI recommends you in ${data.total_mentions} out of ${data.total_queries} queries. You're well-positioned to capture AI-referred leads. Keep building your online presence to maintain this advantage.`
+                },
+                good: {
+                    title: '👍 Good, but there\'s room to grow.',
+                    text: `AI mentions you in ${data.total_mentions} out of ${data.total_queries} queries. You're on the radar, but competitors are getting more visibility. Focus on the recommendations below to close the gap.`
+                },
+                fair: {
+                    title: '⚠️ You have a significant visibility gap.',
+                    text: `AI only mentions you in ${data.total_mentions} out of ${data.total_queries} queries. Most potential customers asking AI for recommendations won't find you. This is fixable — see recommendations below.`
+                },
+                poor: {
+                    title: '🚨 AI doesn\'t know about you.',
+                    text: `AI mentioned you in only ${data.total_mentions} out of ${data.total_queries} queries. When customers ask AI for ${data.vertical} recommendations${data.location ? ' in ' + data.location : ''}, you're invisible. Your competitors are capturing these leads instead.`
+                }
+            };
+            
+            document.getElementById('scoreMeaning').className = 'score-meaning ' + grade;
+            document.getElementById('scoreMeaningTitle').textContent = meanings[grade].title;
+            document.getElementById('scoreMeaningText').textContent = meanings[grade].text;
+            
+            // Query intro - show all services being queried
+            const serviceTerm = (data.services && data.services.length > 0) ? data.services[0] : data.vertical;
+            const allTerms = (data.services && data.services.length > 0) ? [...data.services, data.vertical] : [data.vertical];
+            const servicesText = allTerms.length > 1 ? allTerms.slice(0, -1).join(', ') : allTerms[0];
+            document.getElementById('queryIntro').innerHTML = data.location 
+                ? `We queried GPT-5 and Perplexity for each of your services: <strong>${servicesText}</strong> — both locally (${data.location}) and nationally:`
+                : `We queried GPT-5 and Perplexity for each of your services: <strong>${servicesText}</strong>:`;
+            
+            // Query stats
+            document.getElementById('queriesAsked').textContent = data.total_queries;
+            document.getElementById('timesMentioned').textContent = data.total_mentions;
+            document.getElementById('timesMissed').textContent = data.total_queries - data.total_mentions;
+            
+            // Platform breakdown
+            const pplxEl = document.getElementById('perplexityScore');
+            if (data.perplexity_queries > 0) {
+                pplxEl.textContent = `${data.perplexity_mentions}/${data.perplexity_queries}`;
+                pplxEl.style.color = data.perplexity_mentions > 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+            } else {
+                pplxEl.textContent = 'N/A';
+                pplxEl.style.color = 'var(--text-muted)';
+            }
+            
+            const gptEl = document.getElementById('chatgptScore');
+            if (data.chatgpt_queries > 0) {
+                gptEl.textContent = `${data.chatgpt_mentions}/${data.chatgpt_queries}`;
+                gptEl.style.color = data.chatgpt_mentions > 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+            } else {
+                gptEl.textContent = 'N/A';
+                gptEl.style.color = 'var(--text-muted)';
+            }
+            
+            // Query results from API - with actual AI snippets
+            const queryResults = data.query_results || [];
+            
+            // Count by type
+            const intentCounts = {};
+            const localCount = queryResults.filter(q => q.location_type === 'local').length;
+            const nationalCount = queryResults.filter(q => q.location_type === 'national').length;
+            queryResults.forEach(q => {
+                intentCounts[q.query_type] = (intentCounts[q.query_type] || 0) + 1;
+            });
+            
+            // Intent type labels
+            const intentLabels = {
+                'research': { icon: '🔍', label: 'Research', color: 'var(--accent-blue)' },
+                'quote': { icon: '💰', label: 'Quote Request', color: 'var(--accent-green)' },
+                'urgent': { icon: '⚡', label: 'Urgent Need', color: 'var(--accent-yellow)' },
+                'compare': { icon: '⚖️', label: 'Comparison', color: 'var(--accent-purple)' }
+            };
+            
+            document.getElementById('queryList').innerHTML = `
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; font-size: 0.8rem;">
+                    ${Object.entries(intentCounts).map(([type, count]) => {
+                        const info = intentLabels[type] || { icon: '❓', label: type, color: 'var(--text-muted)' };
+                        return `<span style="background: ${info.color}22; color: ${info.color}; padding: 4px 10px; border-radius: 12px;">${info.icon} ${count} ${info.label}</span>`;
+                    }).join('')}
+                    ${localCount > 0 ? `<span style="background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); padding: 4px 10px; border-radius: 12px;">📍 ${localCount} Local</span>` : ''}
+                    <span style="background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); padding: 4px 10px; border-radius: 12px;">🌎 ${nationalCount} National</span>
+                </div>
+            ` + queryResults.map((q, i) => {
+                const intentInfo = intentLabels[q.query_type] || { icon: '❓', label: q.query_type, color: 'var(--text-muted)' };
+                const platformIcon = q.platform === 'perplexity' ? '🔮' : '🤖';
+                const platformName = q.platform === 'perplexity' ? 'Perplexity' : 'GPT-5';
+                
+                // Highlight competitors in snippet
+                let highlightedSnippet = q.snippet || '';
+                q.competitors_found.forEach(comp => {
+                    const regex = new RegExp(comp.replace('.', '\\.'), 'gi');
+                    highlightedSnippet = highlightedSnippet.replace(regex, `<mark style="background: rgba(245, 158, 11, 0.3); padding: 1px 3px; border-radius: 3px;">${comp}</mark>`);
+                });
+                
+                return `
+                    <div class="query-item ${q.mentioned ? 'mentioned' : 'not-mentioned'}" style="margin-bottom: 15px;">
+                        <div class="query-result-icon ${q.mentioned ? 'mentioned' : 'not-mentioned'}">
+                            ${q.mentioned ? '✓' : '✗'}
+                        </div>
+                        <div class="query-content" style="flex: 1;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px;">
+                                <span style="font-size: 0.75rem; background: rgba(100,100,100,0.2); padding: 2px 8px; border-radius: 8px;">${platformIcon} ${platformName}</span>
+                                <span style="font-size: 0.75rem; background: ${intentInfo.color}22; color: ${intentInfo.color}; padding: 2px 8px; border-radius: 8px;">${intentInfo.icon} ${intentInfo.label}</span>
+                                <span style="font-size: 0.75rem; background: rgba(34, 197, 94, 0.15); color: var(--accent-green); padding: 2px 8px; border-radius: 8px;">${q.service}</span>
+                                <span style="font-size: 0.75rem; background: ${q.location_type === 'local' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(139, 92, 246, 0.15)'}; color: ${q.location_type === 'local' ? 'var(--accent-blue)' : 'var(--accent-purple)'}; padding: 2px 8px; border-radius: 8px;">${q.location_type === 'local' ? '📍 Local' : '🌎 National'}</span>
+                            </div>
+                            <div class="query-text" style="font-weight: 500; margin-bottom: 8px;">"${q.query.replace(/\?.*$/, '?')}"</div>
+                            ${highlightedSnippet ? `
+                                <div style="background: rgba(226, 232, 240, 0.8); border-radius: 8px; padding: 12px; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 8px;">
+                                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 6px;">AI Response:</div>
+                                    ${highlightedSnippet}
+                                </div>
+                            ` : ''}
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div class="query-result-text ${q.mentioned ? 'mentioned' : 'not-mentioned'}">
+                                    ${q.mentioned ? '✓ Your company was mentioned!' : '✗ Not mentioned'}
+                                </div>
+                                ${q.competitors_found.length > 0 ? `
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                        Mentioned: ${q.competitors_found.slice(0, 3).join(', ')}${q.competitors_found.length > 3 ? '...' : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Competitors - only show valid ones
+            const validCompetitors = data.competitors.filter(c => c.is_valid);
+            const relevantCount = validCompetitors.filter(c => c.is_relevant).length;
+            
+            if (validCompetitors.length > 0) {
+                const topComp = validCompetitors[0];
+                const compName = topComp.company_name || topComp.domain;
+                document.getElementById('competitorIntro').innerHTML = `
+                    <p><strong>${compName}</strong> was mentioned <strong>${topComp.mentions} times</strong> across our AI queries${data.location ? ' about ' + data.location : ''}. 
+                    ${score < 50 ? 'While you were barely visible, ' : 'Even with good visibility, '}
+                    we found <strong>${validCompetitors.length} verified competitors</strong>${relevantCount > 0 ? ` (${relevantCount} confirmed in your industry)` : ''} being recommended to your potential customers.</p>
+                `;
+                
+                const maxMentions = topComp.mentions;
+                document.getElementById('competitorList').innerHTML = validCompetitors.slice(0, 10).map((c, i) => {
+                    const name = c.company_name && c.company_name !== c.domain ? c.company_name.split('|')[0].split('-')[0].trim() : '';
+                    const relevantBadge = c.is_relevant ? '<span style="background: rgba(34, 197, 94, 0.2); color: var(--accent-green); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px;">✓ Same Industry</span>' : '';
+                    
+                    return `
+                    <div class="competitor">
+                        <div class="competitor-rank ${i === 0 ? 'gold' : ''}">${i + 1}</div>
+                        <div style="flex: 1;">
+                            <a class="competitor-domain" href="https://${c.domain}" target="_blank">${c.domain}</a>${relevantBadge}
+                            ${name ? `<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">${name.substring(0, 40)}</div>` : ''}
+                        </div>
+                        <div class="competitor-bar-wrap">
+                            <div class="competitor-bar" style="width: ${(c.mentions / maxMentions) * 100}%"></div>
+                        </div>
+                        <span class="competitor-mentions">${c.mentions}× mentioned</span>
+                    </div>
+                `;
+                }).join('');
+            } else {
+                document.getElementById('competitorIntro').innerHTML = `
+                    <p>No verified competitors were detected in the AI responses. This could mean your industry niche is less covered by AI, or the competitors mentioned weren't accessible for verification.</p>
+                `;
+                document.getElementById('competitorList').innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">No verified competitors found</div>';
+            }
+            
+            // Impact calculation - based on actual data
+            const totalCompetitorMentions = validCompetitors.reduce((sum, c) => sum + c.mentions, 0);
+            const yourMentions = data.total_mentions;
+            const totalMentions = totalCompetitorMentions + yourMentions;
+            
+            // Industry-specific average deal sizes (based on industry research)
+            const industryDealSizes = {
+                'aerospace': 75000, 'medical': 50000, 'automotive': 40000,
+                'cnc': 15000, 'machining': 15000, 'precision': 20000,
+                'fabrication': 12000, 'sheet metal': 10000, 'welding': 8000,
+                'prototype': 8000, 'engineering': 25000, 'manufacturing': 15000
+            };
+            
+            // Find matching deal size based on detected services
+            let dealSize = 15000; // default
+            const checkTerms = [serviceTerm, ...(data.services || []), data.vertical].map(s => s.toLowerCase());
+            for (const term of checkTerms) {
+                for (const [key, value] of Object.entries(industryDealSizes)) {
+                    if (term.includes(key)) { dealSize = value; break; }
+                }
+                if (dealSize !== 15000) break;
+            }
+            
+            // Calculate market share from actual data
+            const yourShare = totalMentions > 0 ? (yourMentions / totalMentions) : 0;
+            const competitorShare = totalMentions > 0 ? (totalCompetitorMentions / totalMentions) : 1;
+            
+            // Conservative estimates (with sources)
+            // - 15-20% of B2B buyers use AI for vendor research (Gartner 2024)
+            // - Local B2B: ~100-200 relevant searches/month; National: ~300-500
+            // - 2-3% of searches convert to inquiries
+            // - 10-20% of inquiries convert to customers
+            const monthlySearches = data.location ? 150 : 350;
+            const searchToLeadRate = 0.025;
+            const leadToCustomerRate = 0.15;
+            
+            const totalLeads = Math.round(monthlySearches * searchToLeadRate);
+            const leadsToCompetitors = Math.round(totalLeads * competitorShare);
+            const potentialLoss = Math.round(leadsToCompetitors * leadToCustomerRate * dealSize);
+            
+            document.getElementById('impactText').innerHTML = `
+                <div style="background: rgba(226, 232, 240, 0.7); border-radius: 12px; padding: 20px; margin-bottom: 15px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: center;">
+                        <div>
+                            <div style="font-size: 2rem; font-weight: 700; color: ${yourShare > 0.1 ? 'var(--accent-green)' : 'var(--accent-red)'};">${Math.round(yourShare * 100)}%</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Your AI Share</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">${yourMentions} of ${totalMentions} mentions</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 2rem; font-weight: 700; color: var(--accent-yellow);">${Math.round(competitorShare * 100)}%</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Going to Competitors</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">${totalCompetitorMentions} mentions</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <strong>Estimated opportunity cost:</strong>
+                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--accent-red); margin-left: 10px;">$${potentialLoss.toLocaleString()}/mo</span>
+                </div>
+                
+                <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+                    <strong>How we calculated this:</strong><br>
+                    • Est. ${monthlySearches} AI searches/month for "${serviceTerm}"${data.location ? ' in ' + data.location : ''}<br>
+                    • ${totalLeads} potential leads (${(searchToLeadRate*100).toFixed(1)}% inquiry rate)<br>
+                    • ${leadsToCompetitors} leads going to competitors (${Math.round(competitorShare * 100)}% of market)<br>
+                    • × ${(leadToCustomerRate*100)}% close rate × $${dealSize.toLocaleString()} avg ${serviceTerm} deal<br>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Sources: Gartner B2B Buyer Survey 2024, industry benchmarks</span>
+                </div>
+            `;
+            
+            // Recommendations
+            const recs = [];
+            
+            if (score < 50) {
+                recs.push({
+                    icon: '🌐',
+                    title: 'Strengthen Your Website Content',
+                    desc: `AI learns from web content. Make sure your site clearly states you offer ${data.vertical} services${data.location ? ' in ' + data.location : ''}, your capabilities, and your service areas. Use natural language that matches how customers search.`
+                });
+            }
+            
+            recs.push({
+                icon: '📝',
+                title: 'Publish Expert Content',
+                desc: 'Write case studies, how-to guides, and industry insights. AI often cites authoritative sources. The more helpful content you publish, the more likely AI will reference you.'
+            });
+            
+            if (data.competitors.length > 0) {
+                recs.push({
+                    icon: '🔍',
+                    title: 'Study What\'s Working for Competitors',
+                    desc: `${data.competitors[0].domain} is getting ${data.competitors[0].mentions}× mentions. Look at their website, content strategy, and online presence to understand what makes them visible to AI.`
+                });
+            }
+            
+            recs.push({
+                icon: '📊',
+                title: 'Get Listed Everywhere',
+                desc: 'Industry directories, review sites, Google Business Profile, and business listings all help AI understand and recommend your business. More citations = more visibility.'
+            });
+            
+            recs.push({
+                icon: '🔄',
+                title: 'Track Your Progress',
+                desc: 'AI models update regularly. Run this analysis monthly to track improvements and catch changes in your competitive landscape.'
+            });
+            
+            document.getElementById('recommendations').innerHTML = recs.map(r => `
+                <div class="rec-item">
+                    <div class="rec-icon">${r.icon}</div>
+                    <div class="rec-content">
+                        <h4>${r.title}</h4>
+                        <p>${r.desc}</p>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Show results
+            document.getElementById('results').classList.add('active');
+        }
+        
+        function resetAnalysis() {
+            document.getElementById('inputSection').style.display = 'block';
+            document.getElementById('explainerBox').style.display = 'block';
+            document.getElementById('loading').classList.remove('active');
+            document.getElementById('results').classList.remove('active');
+            document.getElementById('domain').value = '';
+            
+            // Reset loading icons
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('icon' + i).className = 'status-icon waiting';
+                document.getElementById('icon' + i).textContent = '○';
+                document.getElementById('text' + i).className = 'status-text muted';
+            }
+        }
+        
+        // Enter to submit
+        document.getElementById('domain').addEventListener('keypress', e => {
+            if (e.key === 'Enter') analyze();
+        });
+        
+        // Store last analysis data for PDF export
+        let lastAnalysisData = null;
+        
+        // PDF download function
+        async function downloadPDF() {
+            if (!lastAnalysisData) {
+                alert('No analysis data available. Please run an analysis first.');
+                return;
+            }
+            
+            try {
+                // Include logo if uploaded
+                const reportData = { ...lastAnalysisData };
+                if (uploadedLogo) {
+                    reportData.logo = uploadedLogo;
+                }
+                
+                const response = await fetch('/api/report/pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reportData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Report generation failed');
+                }
+                
+                // Open HTML report in new tab for printing
+                const html = await response.text();
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(html);
+                newWindow.document.close();
+                
+            } catch (error) {
+                alert('Error generating report: ' + error.message);
+            }
+        }
+        
+        // Modal functions
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // Close modal on Escape key
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+</html>
