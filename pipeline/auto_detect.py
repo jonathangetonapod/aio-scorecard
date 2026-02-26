@@ -253,23 +253,34 @@ async def extract_with_llm(content: str, company_name: str, openai_key: str = No
     Use GPT-4o or Perplexity to intelligently extract manufacturing info from website content.
     Prefers Perplexity (has web search) if available, falls back to GPT-4o.
     """
-    prompt = f"""Analyze this manufacturing company's website content and extract:
+    prompt = f"""You are analyzing a manufacturing company's website to extract keywords that B2B buyers would search for.
 
-1. **company_name**: The actual company name (not tagline)
-2. **vertical**: Their primary industry category (e.g., "Aerospace Manufacturing", "Medical Devices", "CNC Machining")
-3. **primary_keyword**: The MOST SPECIFIC manufacturing capability that makes them unique. 
-   - NOT generic terms like "manufacturing" or "precision engineering"
-   - GOOD examples: "investment casting", "turbine blade manufacturing", "5-axis CNC machining", "titanium forging", "medical implant machining"
-4. **keywords**: List of 3-5 specific manufacturing processes, materials, or capabilities they offer
-5. **location**: City, State if mentioned (or empty string)
+TASK: Extract the most SPECIFIC and SEARCHABLE manufacturing capabilities.
+
+RULES FOR primary_keyword:
+- Must be what a buyer would actually type into ChatGPT or Perplexity
+- Must be specific enough to find THIS type of company
+- BAD: "manufacturing", "precision engineering", "quality products", "custom solutions"
+- GOOD: "investment casting", "5-axis CNC machining", "titanium aerospace parts", "medical device injection molding", "turbine blade manufacturing"
+
+RULES FOR keywords:
+- Each must be a specific process, material specialty, or capability
+- Think: "What would a procurement manager search for?"
+- Include: specific processes (wire EDM, swiss screw machining), materials (inconel, titanium), certifications (AS9100, ISO 13485), or product types (turbine blades, surgical instruments)
 
 Company name from title: {company_name}
 
 Website content:
 {content[:6000]}
 
-Respond in JSON format only:
-{{"company_name": "...", "vertical": "...", "primary_keyword": "...", "keywords": ["...", "..."], "location": "..."}}"""
+Respond in JSON only:
+{{
+  "company_name": "actual company name",
+  "vertical": "industry category (Aerospace, Medical Devices, Automotive, etc.)",
+  "primary_keyword": "most specific searchable capability",
+  "keywords": ["specific capability 1", "specific capability 2", "specific capability 3"],
+  "location": "City, State or empty"
+}}"""
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:

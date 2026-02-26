@@ -56,23 +56,26 @@ class VisibilityReport:
     responses: list = field(default_factory=list)
 
 
-# Query templates - VERTICAL-BASED (not location-based)
+# Query templates - What B2B buyers ACTUALLY ask AI
 QUERY_TEMPLATES = {
     "research": [
-        "Find me {keyword} manufacturing companies",
-        "Best {keyword} manufacturers in the United States",
-        "Top {keyword} suppliers",
+        "What companies offer {keyword} services?",
+        "Who are the best {keyword} manufacturers in the US?",
+        "List {keyword} companies I should consider for a project",
+        "Recommend {keyword} suppliers with good reputation",
     ],
     "quote": [
-        "I need a quote for {keyword} services - who are the best companies to contact?",
-        "Looking for {keyword} manufacturers that can handle production orders",
+        "I need {keyword} for a project - which companies should I get quotes from?",
+        "Who can I contact for {keyword} manufacturing quotes?",
     ],
     "supplier": [
-        "Who are the leading {keyword} suppliers for {vertical} industry?",
-        "Reliable {keyword} companies for {vertical} applications",
+        "Best {keyword} suppliers for {vertical} applications",
+        "Which companies specialize in {keyword}?",
+        "Top rated {keyword} manufacturers",
     ],
     "compare": [
-        "Compare {keyword} manufacturers - who has the best capabilities?",
+        "Compare the top {keyword} companies - who is best?",
+        "What are the differences between {keyword} manufacturers?",
     ],
 }
 
@@ -94,7 +97,7 @@ def extract_domains(text: str) -> list[str]:
 
 
 def check_domain_mentioned(text: str, domain: str, company_name: str = "") -> bool:
-    """Check if domain or company appears in text"""
+    """Check if domain or company appears in text - with fuzzy matching"""
     text_lower = text.lower()
     domain_clean = domain.lower().replace('www.', '')
     
@@ -107,10 +110,29 @@ def check_domain_mentioned(text: str, domain: str, company_name: str = "") -> bo
     if len(domain_name) > 3 and domain_name in text_lower:
         return True
     
-    # Check company name if provided
+    # Check company name if provided (with variations)
     if company_name and len(company_name) > 3:
         company_lower = company_name.lower()
+        
+        # Direct match
         if company_lower in text_lower:
+            return True
+        
+        # Try without common suffixes
+        for suffix in [' inc', ' llc', ' corp', ' ltd', ' co', ' company', ' manufacturing', ' mfg']:
+            if company_lower.endswith(suffix):
+                base_name = company_lower[:-len(suffix)].strip()
+                if len(base_name) > 3 and base_name in text_lower:
+                    return True
+        
+        # Try with spaces removed (e.g., "Proto Labs" vs "Protolabs")
+        no_space = company_lower.replace(' ', '')
+        if len(no_space) > 4 and no_space in text_lower.replace(' ', ''):
+            return True
+        
+        # Try first word only if it's substantial (e.g., "Xometry" from "Xometry Inc")
+        first_word = company_lower.split()[0] if ' ' in company_lower else ''
+        if len(first_word) > 4 and first_word in text_lower:
             return True
     
     return False
@@ -160,12 +182,12 @@ class AIChecker:
             return ""
     
     async def query_chatgpt(self, prompt: str) -> str:
-        """Query OpenAI ChatGPT"""
+        """Query OpenAI o3-mini (reasoning model)"""
         if not self.openai_key:
             return ""
         
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=180.0) as client:  # Longer timeout for reasoning model
                 response = await client.post(
                     "https://api.openai.com/v1/chat/completions",
                     headers={
