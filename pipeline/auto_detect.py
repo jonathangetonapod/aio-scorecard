@@ -1,17 +1,22 @@
 """
 Auto-detect company info from domain
 
+Enhanced v2: Extracts specific manufacturing keywords for vertical-based queries.
+
 Uses web scraping to extract:
 - Company name
-- Industry vertical
-- Location
+- Industry vertical (category)
+- Primary keyword (most unique/specific term)
+- Additional keywords
+- Location (optional)
 """
 
 import re
 import httpx
 from bs4 import BeautifulSoup
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
+from collections import Counter
 
 
 @dataclass
@@ -19,85 +24,203 @@ class CompanyInfo:
     """Detected company information"""
     domain: str
     company_name: str = ""
-    vertical: str = ""
+    vertical: str = ""  # Parent category (e.g., "aerospace")
+    primary_keyword: str = ""  # Most specific term (e.g., "investment casting")
+    keywords: list = field(default_factory=list)  # All extracted keywords
     location: str = ""
     description: str = ""
-    services: list = None  # Specific services found
+    services: list = field(default_factory=list)  # Legacy - kept for compatibility
     detected: bool = False
-    
-    def __post_init__(self):
-        if self.services is None:
-            self.services = []
 
 
-# Industry keywords for vertical detection (most specific first)
-VERTICALS = {
-    "precision CNC machining": ["cnc machin", "precision machin", "cnc mill", "cnc turn", "5-axis", "5 axis"],
-    "CNC machining": ["cnc", "machining", "milling", "turning", "lathe", "swiss screw"],
-    "injection molding": ["injection mold", "plastic mold", "tooling", "thermoplastic"],
-    "metal stamping": ["metal stamp", "die stamp", "progressive die", "stamping"],
-    "sheet metal fabrication": ["sheet metal", "metal fabricat", "laser cut", "brake form", "punching"],
-    "metal fabrication": ["fabricat", "welding", "steel", "aluminum", "stainless"],
-    "3D printing": ["3d print", "additive manufactur", "rapid prototype", "fdm", "sls", "sla", "dmls"],
-    "PCB manufacturing": ["pcb", "circuit board", "printed circuit"],
-    "electronics manufacturing": ["electronics manufactur", "ems", "electronic assembly", "smt"],
-    "aerospace manufacturing": ["aerospace", "aviation", "aircraft", "as9100", "nadcap"],
-    "medical device manufacturing": ["medical device", "iso 13485", "fda", "medical manufactur"],
-    "automotive manufacturing": ["automotive", "iatf", "tier 1", "tier 2", "oem"],
-    "tool and die": ["tool and die", "die making", "mold making", "toolmaker"],
-    "powder coating": ["powder coat", "finishing", "anodiz", "plating", "surface finish"],
-    "wire EDM": ["wire edm", "edm", "electrical discharge"],
-    "waterjet cutting": ["waterjet", "water jet", "abrasive jet"],
-    "laser cutting": ["laser cut", "fiber laser", "co2 laser"],
-    "prototype manufacturing": ["prototype", "rapid prototype", "low volume", "quick turn"],
-    "contract manufacturing": ["contract manufactur", "oem manufactur", "outsource manufactur"],
-    "custom manufacturing": ["custom manufactur", "custom part", "made to order", "bespoke"],
-    "precision engineering": ["precision engineer", "tight tolerance", "high precision"],
-    "machine shop": ["machine shop", "job shop"],
-    "general manufacturing": ["manufactur", "industrial", "production", "factory"],
+# Target manufacturing verticals (from client feedback)
+TARGET_VERTICALS = {
+    "automotive_oem": {
+        "name": "Automotive OEM",
+        "triggers": ["automotive", "oem", "tier 1", "tier 2", "iatf 16949", "iatf", "auto parts", "vehicle components"],
+        "keywords": ["automotive stamping", "automotive tooling", "vehicle components", "auto parts manufacturing"]
+    },
+    "medical_devices": {
+        "name": "Medical Devices",
+        "triggers": ["medical device", "iso 13485", "fda", "medical manufactur", "surgical", "implant", "biomedical"],
+        "keywords": ["medical device manufacturing", "surgical instruments", "implant manufacturing", "fda registered"]
+    },
+    "fluid_handling": {
+        "name": "Fluid Handling",
+        "triggers": ["fluid handling", "valve", "pump", "hydraulic", "pneumatic", "piping", "flow control"],
+        "keywords": ["valve manufacturing", "pump components", "hydraulic systems", "fluid control"]
+    },
+    "oil_gas": {
+        "name": "Oil & Gas",
+        "triggers": ["oil and gas", "oil & gas", "petroleum", "drilling", "pipeline", "refinery", "offshore", "downhole"],
+        "keywords": ["oilfield equipment", "drilling components", "pipeline manufacturing", "downhole tools"]
+    },
+    "defense": {
+        "name": "Defense",
+        "triggers": ["defense", "military", "dod", "itar", "government contract", "mil-spec", "mil spec"],
+        "keywords": ["defense manufacturing", "military components", "itar compliant", "mil-spec parts"]
+    },
+    "aviation": {
+        "name": "Aviation",
+        "triggers": ["aviation", "aircraft", "airline", "flight", "landing gear", "avionics"],
+        "keywords": ["aircraft components", "aviation parts", "landing gear manufacturing", "avionics assembly"]
+    },
+    "aerospace": {
+        "name": "Aerospace",
+        "triggers": ["aerospace", "as9100", "nadcap", "space", "satellite", "rocket", "propulsion"],
+        "keywords": ["aerospace manufacturing", "as9100 certified", "nadcap approved", "flight-critical parts"]
+    },
+    "space_exploration": {
+        "name": "Space Exploration",
+        "triggers": ["space exploration", "spacecraft", "satellite", "rocket", "launch vehicle", "orbital"],
+        "keywords": ["spacecraft components", "satellite manufacturing", "rocket parts", "space-grade"]
+    },
+    "industrial": {
+        "name": "Industrial",
+        "triggers": ["industrial", "factory", "plant", "machinery", "equipment manufactur"],
+        "keywords": ["industrial equipment", "factory machinery", "industrial components"]
+    },
+    "power_generation": {
+        "name": "Power Generation",
+        "triggers": ["power generation", "turbine", "generator", "energy", "power plant", "steam turbine", "gas turbine"],
+        "keywords": ["turbine manufacturing", "generator components", "power plant equipment", "turbine blades"]
+    },
+    "heavy_machinery": {
+        "name": "Heavy Machinery",
+        "triggers": ["heavy machinery", "heavy equipment", "construction equipment", "mining equipment", "earthmoving"],
+        "keywords": ["heavy equipment manufacturing", "construction machinery", "mining equipment parts"]
+    },
+    "robotics": {
+        "name": "Robotics",
+        "triggers": ["robotics", "robot", "automation", "automated", "cobot", "robotic arm"],
+        "keywords": ["robotics manufacturing", "robotic components", "automation systems", "robotic assembly"]
+    },
+    "drones": {
+        "name": "Drones/UAV",
+        "triggers": ["drone", "uav", "unmanned", "uas", "quadcopter", "aerial vehicle"],
+        "keywords": ["drone manufacturing", "uav components", "unmanned systems", "drone parts"]
+    },
+    "vehicle_electrification": {
+        "name": "Vehicle Electrification",
+        "triggers": ["electrification", "ev", "electric vehicle", "battery", "charging", "e-mobility", "hybrid"],
+        "keywords": ["ev components", "electric vehicle manufacturing", "battery systems", "charging equipment"]
+    },
+    "cnc_machining": {
+        "name": "CNC Machining",
+        "triggers": ["cnc", "machining", "machine shop", "milling", "turning", "lathe", "swiss screw", "5-axis", "5 axis"],
+        "keywords": ["cnc machining", "precision machining", "5-axis machining", "swiss screw machining"]
+    },
 }
 
+# Specific manufacturing processes/capabilities (for keyword extraction)
+SPECIFIC_KEYWORDS = [
+    # Casting processes
+    "investment casting", "die casting", "sand casting", "lost wax casting", "centrifugal casting",
+    "precision casting", "vacuum casting", "permanent mold casting",
+    
+    # Machining processes
+    "cnc machining", "cnc milling", "cnc turning", "5-axis machining", "swiss screw machining",
+    "precision machining", "high-speed machining", "multi-axis machining", "wire edm", "sinker edm",
+    "electrical discharge machining", "grinding", "honing", "lapping",
+    
+    # Forming processes
+    "metal stamping", "progressive die stamping", "deep draw stamping", "hydroforming",
+    "roll forming", "metal spinning", "forging", "cold forming", "hot forming",
+    
+    # Fabrication
+    "sheet metal fabrication", "metal fabrication", "welding", "tig welding", "mig welding",
+    "laser welding", "robotic welding", "tube bending", "pipe fabrication",
+    
+    # Cutting
+    "laser cutting", "waterjet cutting", "plasma cutting", "fiber laser cutting",
+    
+    # Molding
+    "injection molding", "plastic injection molding", "blow molding", "compression molding",
+    "thermoforming", "rotational molding", "reaction injection molding",
+    
+    # Additive
+    "3d printing", "additive manufacturing", "metal 3d printing", "dmls", "sls", "fdm",
+    "rapid prototyping", "direct metal laser sintering",
+    
+    # Surface treatment
+    "powder coating", "anodizing", "plating", "electroplating", "chrome plating",
+    "nickel plating", "zinc plating", "passivation", "heat treatment",
+    
+    # Assembly
+    "electromechanical assembly", "electronic assembly", "pcb assembly", "cable assembly",
+    "mechanical assembly", "box build",
+    
+    # Specific components
+    "turbine blades", "gear manufacturing", "bearing manufacturing", "spring manufacturing",
+    "fastener manufacturing", "connector manufacturing", "sensor manufacturing",
+    "heat exchanger", "pressure vessel",
+    
+    # Materials specialties
+    "titanium machining", "inconel machining", "stainless steel", "aluminum machining",
+    "exotic alloys", "superalloys", "composites", "carbon fiber",
+    
+    # Certifications (can be keywords too)
+    "as9100 certified", "iso 13485 certified", "iatf 16949 certified", "nadcap certified",
+    "itar registered", "fda registered",
+]
 
-def detect_vertical(text: str) -> tuple[str, list]:
-    """Detect industry vertical and specific services from text"""
+
+def extract_keywords_from_text(text: str) -> list[tuple[str, int]]:
+    """
+    Extract specific manufacturing keywords from text.
+    Returns list of (keyword, count) tuples sorted by count.
+    """
+    text_lower = text.lower()
+    found = Counter()
+    
+    for keyword in SPECIFIC_KEYWORDS:
+        # Count occurrences (case-insensitive)
+        count = text_lower.count(keyword.lower())
+        if count > 0:
+            found[keyword] = count
+    
+    # Also look for keyword variations
+    variations = {
+        "5-axis": ["5 axis", "five axis", "5axis"],
+        "cnc machining": ["cnc machine", "computer numerical control"],
+        "3d printing": ["3-d printing", "three d printing"],
+        "wire edm": ["wire electrical discharge", "wire erosion"],
+    }
+    
+    for canonical, variants in variations.items():
+        for variant in variants:
+            if variant in text_lower:
+                found[canonical] = found.get(canonical, 0) + text_lower.count(variant)
+    
+    return sorted(found.items(), key=lambda x: -x[1])
+
+
+def detect_vertical(text: str) -> tuple[str, str]:
+    """
+    Detect industry vertical category from text.
+    Returns (vertical_key, vertical_name).
+    """
     text_lower = text.lower()
     
     scores = {}
-    for vertical, keywords in VERTICALS.items():
-        score = sum(1 for kw in keywords if kw in text_lower)
+    for key, config in TARGET_VERTICALS.items():
+        score = sum(1 for trigger in config["triggers"] if trigger in text_lower)
         if score > 0:
-            scores[vertical] = score
-    
-    # Also extract specific service keywords found
-    service_keywords = [
-        "cnc machining", "cnc milling", "cnc turning", "5-axis machining",
-        "injection molding", "plastic molding",
-        "sheet metal", "metal fabrication", "welding", "laser cutting",
-        "3d printing", "additive manufacturing", "rapid prototyping",
-        "pcb assembly", "electronics assembly",
-        "powder coating", "anodizing", "plating",
-        "wire edm", "waterjet cutting",
-        "precision machining", "swiss machining",
-        "tool and die", "stamping", "die casting",
-        "prototype", "low volume production",
-        "aerospace", "medical device", "automotive",
-        "engineering", "design services", "assembly services"
-    ]
-    
-    services_found = [s for s in service_keywords if s in text_lower]
+            scores[key] = score
     
     if scores:
-        return max(scores, key=scores.get), services_found
-    return "manufacturing", services_found
+        best_key = max(scores, key=scores.get)
+        return best_key, TARGET_VERTICALS[best_key]["name"]
+    
+    return "industrial", "Industrial Manufacturing"
 
 
 def extract_location(text: str) -> str:
     """Try to extract location from text"""
-    # Common patterns
     patterns = [
         r'(?:located in|based in|headquarters in|serving)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,?\s*[A-Z]{2})',
-        r'([A-Z][a-z]+,\s*[A-Z]{2}\s*\d{5})',  # City, ST 12345
-        r'([A-Z][a-z]+,\s*[A-Z]{2})\b',  # City, ST
+        r'([A-Z][a-z]+,\s*[A-Z]{2}\s*\d{5})',
+        r'([A-Z][a-z]+,\s*[A-Z]{2})\b',
     ]
     
     for pattern in patterns:
@@ -110,7 +233,6 @@ def extract_location(text: str) -> str:
 
 def clean_company_name(name: str, domain: str) -> str:
     """Clean up company name"""
-    # Remove common suffixes
     suffixes = [' LLC', ' Inc', ' Inc.', ' Corp', ' Corporation', ' Ltd', ' Co.', ' Company',
                 ' | Home', ' - Home', ' – Home', ' | Official', ' - Official']
     
@@ -119,11 +241,8 @@ def clean_company_name(name: str, domain: str) -> str:
         if result.endswith(suffix):
             result = result[:-len(suffix)]
     
-    # If name is too long or looks like a tagline, use domain
     if len(result) > 50 or '|' in result or '-' in result:
-        # Extract from domain
         domain_clean = domain.replace('www.', '').split('.')[0]
-        # Title case
         result = domain_clean.replace('-', ' ').replace('_', ' ').title()
     
     return result.strip()
@@ -133,10 +252,7 @@ async def detect_from_domain(domain: str) -> CompanyInfo:
     """
     Auto-detect company info from domain.
     
-    Fetches homepage and extracts:
-    - Company name from title/meta
-    - Industry vertical from content
-    - Location if found
+    Enhanced v2: Extracts specific keywords for vertical-based queries.
     """
     info = CompanyInfo(domain=domain)
     
@@ -146,12 +262,11 @@ async def detect_from_domain(domain: str) -> CompanyInfo:
         domain_clean = domain_clean.split('/')[0]
     
     info.domain = domain_clean
-    
-    # Default company name from domain
     info.company_name = domain_clean.split('.')[0].replace('-', ' ').replace('_', ' ').title()
     
     try:
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            # Fetch homepage
             response = await client.get(
                 f"https://{domain_clean}",
                 headers={"User-Agent": "Mozilla/5.0 (compatible; research bot)"}
@@ -169,50 +284,129 @@ async def detect_from_domain(domain: str) -> CompanyInfo:
             # Extract meta description
             meta_desc = soup.find('meta', attrs={'name': 'description'})
             if meta_desc and meta_desc.get('content'):
-                info.description = meta_desc['content'][:300]
+                info.description = meta_desc['content'][:500]
             
             # Get page text for analysis
-            # Remove script/style
-            for tag in soup(['script', 'style', 'nav', 'footer', 'header']):
+            for tag in soup(['script', 'style', 'nav', 'footer']):
                 tag.decompose()
             
-            page_text = soup.get_text(separator=' ', strip=True)[:5000]
+            page_text = soup.get_text(separator=' ', strip=True)[:8000]
             
-            # Detect vertical and services
+            # Combine all text for analysis
             combined_text = f"{info.company_name} {info.description} {page_text}"
-            info.vertical, info.services = detect_vertical(combined_text)
             
-            # Try to find location
+            # 1. Detect vertical category
+            vertical_key, vertical_name = detect_vertical(combined_text)
+            info.vertical = vertical_name
+            
+            # 2. Extract specific keywords
+            keyword_counts = extract_keywords_from_text(combined_text)
+            info.keywords = [kw for kw, count in keyword_counts[:10]]  # Top 10
+            
+            # 3. Determine primary keyword (most mentioned specific term)
+            if keyword_counts:
+                info.primary_keyword = keyword_counts[0][0]
+            else:
+                # Fallback to vertical's default keywords
+                info.primary_keyword = TARGET_VERTICALS.get(vertical_key, {}).get("keywords", ["manufacturing"])[0]
+            
+            # 4. Legacy: services field (for backwards compat)
+            info.services = info.keywords[:5]
+            
+            # 5. Try to find location
             info.location = extract_location(page_text)
             
             info.detected = True
             
+            print(f"  ✓ Detected: {info.company_name}")
+            print(f"    Vertical: {info.vertical}")
+            print(f"    Primary keyword: {info.primary_keyword}")
+            if info.keywords:
+                print(f"    Keywords: {', '.join(info.keywords[:5])}")
+            
     except Exception as e:
         print(f"Detection error for {domain}: {e}")
-        # Use defaults
-        info.vertical = "manufacturing"
-        info.services = []
+        info.vertical = "Industrial Manufacturing"
+        info.primary_keyword = "precision manufacturing"
+        info.keywords = ["precision manufacturing"]
+    
+    return info
+
+
+# Also try to fetch /about, /services, /capabilities pages for more keywords
+async def detect_from_domain_deep(domain: str) -> CompanyInfo:
+    """
+    Enhanced detection that also checks /about, /services, /capabilities pages.
+    Use this for more thorough keyword extraction.
+    """
+    info = await detect_from_domain(domain)
+    
+    if not info.detected:
+        return info
+    
+    domain_clean = info.domain
+    additional_text = ""
+    
+    # Pages to check for more keywords
+    pages_to_check = ["/about", "/about-us", "/services", "/capabilities", "/what-we-do"]
+    
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+        for page in pages_to_check:
+            try:
+                response = await client.get(
+                    f"https://{domain_clean}{page}",
+                    headers={"User-Agent": "Mozilla/5.0 (compatible; research bot)"}
+                )
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    for tag in soup(['script', 'style', 'nav', 'footer']):
+                        tag.decompose()
+                    additional_text += " " + soup.get_text(separator=' ', strip=True)[:3000]
+            except:
+                pass
+    
+    if additional_text:
+        # Re-extract keywords with additional content
+        keyword_counts = extract_keywords_from_text(additional_text)
+        
+        # Merge with existing keywords
+        existing = set(info.keywords)
+        for kw, count in keyword_counts:
+            if kw not in existing:
+                info.keywords.append(kw)
+        
+        info.keywords = info.keywords[:15]  # Cap at 15
+        
+        # Update primary if we found something better
+        if keyword_counts and keyword_counts[0][1] > 3:  # At least 3 mentions
+            info.primary_keyword = keyword_counts[0][0]
     
     return info
 
 
 async def test():
-    """Test detection"""
+    """Test detection with manufacturing companies"""
     domains = [
         "xometry.com",
-        "protolabs.com",
-        "genesisengineeredsolutions.com"
+        "protolabs.com", 
+        "genesisengineeredsolutions.com",
+        "pennengineering.com",
     ]
     
-    print("\n🔍 Testing Auto-Detection\n")
+    print("\n🔍 Testing Enhanced Auto-Detection (v2)\n")
+    print("="*60)
     
     for domain in domains:
-        print(f"Detecting: {domain}")
+        print(f"\n📊 Analyzing: {domain}")
+        print("-"*40)
         info = await detect_from_domain(domain)
         print(f"  Company: {info.company_name}")
         print(f"  Vertical: {info.vertical}")
+        print(f"  Primary Keyword: {info.primary_keyword}")
+        print(f"  All Keywords: {', '.join(info.keywords[:5]) if info.keywords else 'None'}")
         print(f"  Location: {info.location or 'Not found'}")
-        print()
+    
+    print("\n" + "="*60)
 
 
 if __name__ == "__main__":

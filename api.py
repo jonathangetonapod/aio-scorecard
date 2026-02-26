@@ -1,7 +1,7 @@
 """
-AIO Scorecard API
+AIO Scorecard API v2
 
-Simple FastAPI backend for AI visibility checking.
+Vertical-based AI visibility checking for manufacturers.
 """
 
 import os
@@ -35,16 +35,18 @@ class AnalyzeRequest(BaseModel):
     domain: str
     company_name: Optional[str] = None
     vertical: Optional[str] = None
+    primary_keyword: Optional[str] = None
+    keywords: Optional[list] = None
     location: Optional[str] = None
+    # Legacy field
     services: Optional[list] = None
 
 
 class QueryResult(BaseModel):
     platform: str
     query: str
-    query_type: str  # research, quote, urgent, compare
-    service: str
-    location_type: str  # local, national
+    query_type: str
+    keyword: str
     snippet: str
     mentioned: bool
     competitors_found: list[str] = []
@@ -59,12 +61,22 @@ class CompetitorInfo(BaseModel):
     note: str = ""
 
 
+class InstantlyVariables(BaseModel):
+    """Pre-formatted variables for Instantly email campaigns"""
+    keyword: str
+    vertical: str
+    visibility_score: str
+    top_competitor: str
+    email_snippet: str
+
+
 class AnalyzeResponse(BaseModel):
     domain: str
     company_name: str
     vertical: str
-    location: str
-    services: list[str] = []
+    primary_keyword: str  # NEW - for email personalization
+    keywords: list[str] = []  # NEW - all extracted keywords
+    location: str = ""
     
     # Scores
     visibility_score: float
@@ -83,6 +95,9 @@ class AnalyzeResponse(BaseModel):
     # Competitors
     competitors: list[CompetitorInfo]
     
+    # Email helpers
+    instantly_variables: Optional[InstantlyVariables] = None
+    
     # Status
     status: str = "complete"
 
@@ -90,9 +105,9 @@ class AnalyzeResponse(BaseModel):
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 async def analyze_domain(req: AnalyzeRequest):
     """
-    Analyze a domain's AI visibility.
+    Analyze a domain's AI visibility using vertical-based queries.
     
-    Queries AI chatbots to check if the domain gets recommended.
+    v2: Uses specific manufacturing keywords instead of location-based queries.
     """
     try:
         # Clean domain input
@@ -106,8 +121,12 @@ async def analyze_domain(req: AnalyzeRequest):
         
         req.domain = domain
         
+        # Handle legacy 'services' field
+        if req.services and not req.keywords:
+            req.keywords = req.services
+        
         # Auto-detect if needed
-        if not req.company_name or not req.vertical:
+        if not req.company_name or not req.primary_keyword:
             print(f"🔍 Auto-detecting info for {req.domain}...")
             try:
                 info = await detect_from_domain(req.domain)
@@ -115,25 +134,29 @@ async def analyze_domain(req: AnalyzeRequest):
                 if not req.company_name:
                     req.company_name = info.company_name or req.domain.split('.')[0].title()
                 if not req.vertical:
-                    req.vertical = info.vertical or "business services"
+                    req.vertical = info.vertical or "Industrial Manufacturing"
+                if not req.primary_keyword:
+                    req.primary_keyword = info.primary_keyword or "precision manufacturing"
+                if not req.keywords:
+                    req.keywords = info.keywords or []
                 if not req.location:
                     req.location = info.location or ""
-                if not req.services:
-                    req.services = info.services or []
+                    
             except Exception as e:
                 print(f"Auto-detect failed: {e}")
                 req.company_name = req.company_name or req.domain.split('.')[0].title()
-                req.vertical = req.vertical or "business services"
+                req.vertical = req.vertical or "Industrial Manufacturing"
+                req.primary_keyword = req.primary_keyword or "precision manufacturing"
+                req.keywords = req.keywords or []
                 req.location = req.location or ""
-                req.services = req.services or []
         
-        print(f"📊 Checking visibility for {req.company_name} ({req.vertical})")
-        if req.location:
-            print(f"   Location: {req.location}")
-        if req.services:
-            print(f"   Services: {', '.join(req.services[:5])}")
+        print(f"\n📊 Checking visibility for {req.company_name}")
+        print(f"   Vertical: {req.vertical}")
+        print(f"   Primary Keyword: {req.primary_keyword}")
+        if req.keywords:
+            print(f"   Keywords: {', '.join(req.keywords[:5])}")
         
-        # Run visibility check with both APIs
+        # Run visibility check
         perplexity_key = os.getenv('PERPLEXITY_API_KEY')
         openai_key = os.getenv('OPENAI_API_KEY')
         
@@ -149,8 +172,9 @@ async def analyze_domain(req: AnalyzeRequest):
             domain=req.domain,
             company_name=req.company_name,
             vertical=req.vertical,
-            location=req.location or "",
-            services=req.services or []
+            primary_keyword=req.primary_keyword,
+            keywords=req.keywords or [],
+            location=req.location or ""
         )
         
         # Ensure we got at least some queries through
@@ -163,8 +187,7 @@ async def analyze_domain(req: AnalyzeRequest):
                 platform=r.platform,
                 query=r.query,
                 query_type=r.query_type,
-                service=r.service,
-                location_type=r.location_type,
+                keyword=r.keyword,
                 snippet=r.response_snippet,
                 mentioned=r.mentions_target,
                 competitors_found=r.competitors_found
@@ -176,7 +199,7 @@ async def analyze_domain(req: AnalyzeRequest):
         print("  → Validating competitors...")
         validated = await validate_competitors(
             report.competitors,
-            target_services=req.services or [],
+            target_services=req.keywords or [],
             max_to_validate=15
         )
         
@@ -191,15 +214,28 @@ async def analyze_domain(req: AnalyzeRequest):
                 note=c.validation_note
             )
             for c in validated
-            if c.is_valid  # Only include accessible domains
+            if c.is_valid
         ]
+        
+        # Get top competitor for email
+        top_competitor = competitors[0].domain if competitors else "competitors"
+        
+        # Build Instantly variables
+        instantly_vars = InstantlyVariables(
+            keyword=req.primary_keyword,
+            vertical=req.vertical,
+            visibility_score=f"{report.visibility_score:.0f}%",
+            top_competitor=top_competitor,
+            email_snippet=f"I noticed you're not ranking in LLMs for what you focus on — {req.primary_keyword}. I ran a report comparing you to other {req.primary_keyword} manufacturers, and this is where you rank. Can I send over the report?"
+        )
         
         return AnalyzeResponse(
             domain=report.domain,
             company_name=report.company_name,
             vertical=report.vertical,
-            location=report.location,
-            services=req.services or [],
+            primary_keyword=report.primary_keyword,
+            keywords=req.keywords or [],
+            location=req.location or "",
             visibility_score=report.visibility_score,
             total_queries=report.total_queries,
             total_mentions=report.total_mentions,
@@ -208,9 +244,12 @@ async def analyze_domain(req: AnalyzeRequest):
             chatgpt_queries=report.chatgpt_queries,
             chatgpt_mentions=report.chatgpt_mentions,
             query_results=query_results,
-            competitors=competitors
+            competitors=competitors,
+            instantly_variables=instantly_vars
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error analyzing {req.domain}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -754,7 +754,7 @@
     <div class="container">
         <header>
             <h1>🎯 AIO Readiness Scorecard</h1>
-            <p class="subtitle">Find out if GPT-5 and Perplexity recommend your business when customers ask for help finding companies like yours.</p>
+            <p class="subtitle">Find out if GPT-5 and Perplexity recommend your business when customers search for your specific manufacturing capabilities.</p>
         </header>
         
         <!-- What This Tool Does -->
@@ -763,22 +763,22 @@
             <div class="explainer-steps">
                 <div class="explainer-step">
                     <div class="step-number">1</div>
-                    <div class="step-title">Real AI Queries</div>
-                    <div class="step-desc">We ask <strong>GPT-5</strong> and <strong>Perplexity</strong> the exact questions your prospects ask — "Best [service] companies in [your city]?"</div>
+                    <div class="step-title">Extract Your Keywords</div>
+                    <div class="step-desc">We scan your website to identify your <strong>specific manufacturing capabilities</strong> — investment casting, 5-axis CNC, turbine blades, etc.</div>
                 </div>
                 <div class="explainer-step">
                     <div class="step-number">2</div>
-                    <div class="step-title">Live Response Analysis</div>
-                    <div class="step-desc">We capture each AI's real-time response and check if your company is mentioned or recommended</div>
+                    <div class="step-title">Query AI by Vertical</div>
+                    <div class="step-desc">We ask <strong>GPT-5</strong> and <strong>Perplexity</strong>: "Find me [your keyword] manufacturing companies" — exactly what buyers ask</div>
                 </div>
                 <div class="explainer-step">
                     <div class="step-number">3</div>
                     <div class="step-title">Competitive Intelligence</div>
-                    <div class="step-desc">We identify which competitors ARE being recommended — and how often they appear instead of you</div>
+                    <div class="step-desc">We identify which <strong>vertical competitors</strong> ARE being recommended — and how often they appear instead of you</div>
                 </div>
             </div>
             <div style="margin-top: 20px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; font-size: 0.9rem; text-align: center;">
-                <strong>⚡ Live Test:</strong> We make 6 real API calls to GPT-5 and Perplexity right now — not cached data. Takes ~30 seconds.
+                <strong>⚡ Live Test:</strong> We analyze your website, extract keywords, and make real API calls to GPT-5 and Perplexity. Takes ~30 seconds.
             </div>
         </div>
         
@@ -874,9 +874,11 @@
                 <img id="logoPreview" style="display: none; max-height: 50px; margin-top: 10px; border-radius: 4px;" />
             </div>
             <div class="input-group">
-                <input type="text" id="domain" placeholder="Enter website (e.g., yourcompany.com)" style="flex: 2;" />
-                <input type="text" id="location" placeholder="Location (e.g., Denver, CO)" style="flex: 1;" />
-                <button onclick="analyze()">Check Visibility</button>
+                <input type="text" id="domain" placeholder="Enter manufacturer's website (e.g., company.com)" style="flex: 1;" />
+                <button onclick="analyze()">Analyze Visibility</button>
+            </div>
+            <div style="text-align: center; margin-top: 12px; font-size: 0.85rem; color: var(--text-muted);">
+                We'll automatically detect their manufacturing vertical and specific capabilities
             </div>
         </div>
         
@@ -893,19 +895,19 @@
                     <h4>Live Progress</h4>
                     <div class="status-item">
                         <div class="status-icon waiting" id="icon1">○</div>
-                        <span class="status-text muted" id="text1">Detecting your company info from website...</span>
+                        <span class="status-text muted" id="text1">Scanning website for manufacturing keywords...</span>
                     </div>
                     <div class="status-item">
                         <div class="status-icon waiting" id="icon2">○</div>
-                        <span class="status-text muted" id="text2">Asking GPT-5 + Perplexity: "Best [industry] companies?"</span>
+                        <span class="status-text muted" id="text2">Querying AI: "Find me [keyword] manufacturers"</span>
                     </div>
                     <div class="status-item">
                         <div class="status-icon waiting" id="icon3">○</div>
-                        <span class="status-text muted" id="text3">Checking both AI responses for your company...</span>
+                        <span class="status-text muted" id="text3">Checking AI responses for your company...</span>
                     </div>
                     <div class="status-item">
                         <div class="status-icon waiting" id="icon4">○</div>
-                        <span class="status-text muted" id="text4">Finding competitors who ARE recommended...</span>
+                        <span class="status-text muted" id="text4">Identifying vertical competitors being recommended...</span>
                     </div>
                 </div>
             </div>
@@ -918,7 +920,7 @@
             <div class="result-section">
                 <div class="section-header">
                     <h2>📊 Your AI Visibility Score</h2>
-                    <p>This score shows what percentage of AI queries mention your business. Higher = more customers finding you through AI.</p>
+                    <p>This score shows what percentage of AI queries mention your business when searching for your specific capabilities.</p>
                 </div>
                 
                 <div class="score-display">
@@ -936,7 +938,14 @@
                     
                     <div class="score-explanation">
                         <div class="company-name" id="companyName">Your Company</div>
-                        <div class="company-meta" id="companyMeta">Industry • Location</div>
+                        <div class="company-meta" id="companyMeta">Industry</div>
+                        
+                        <!-- Primary Keyword Highlight -->
+                        <div id="keywordBox" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15)); border-radius: 10px; padding: 12px 16px; margin-bottom: 15px;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">Primary Keyword Detected</div>
+                            <div style="font-size: 1.1rem; font-weight: 600; color: var(--accent-blue);" id="primaryKeyword">-</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px;" id="allKeywords"></div>
+                        </div>
                         
                         <div class="score-meaning" id="scoreMeaning">
                             <h4 id="scoreMeaningTitle">Calculating...</h4>
@@ -944,6 +953,32 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Instantly Variables Copy Section -->
+            <div class="result-section" id="instantlySection" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(59, 130, 246, 0.05));">
+                <div class="section-header">
+                    <h2>📧 Ready for Instantly</h2>
+                    <p>Copy these variables for your email campaign personalization.</p>
+                </div>
+                
+                <div style="background: rgba(226, 232, 240, 0.7); border-radius: 12px; padding: 20px; margin-bottom: 15px;">
+                    <div style="font-family: monospace; font-size: 0.9rem; line-height: 2;">
+                        <div><strong>{{keyword}}</strong> = <span id="copyKeyword">-</span></div>
+                        <div><strong>{{vertical}}</strong> = <span id="copyVertical">-</span></div>
+                        <div><strong>{{visibility_score}}</strong> = <span id="copyScore">-</span></div>
+                        <div><strong>{{top_competitor}}</strong> = <span id="copyCompetitor">-</span></div>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(226, 232, 240, 0.7); border-radius: 12px; padding: 20px;">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Email Snippet (ready to copy):</div>
+                    <div id="emailSnippet" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary);"></div>
+                </div>
+                
+                <button onclick="copyInstantlyVars()" style="margin-top: 15px; background: linear-gradient(135deg, #22c55e, #16a34a); width: 100%;">
+                    📋 Copy All Variables
+                </button>
             </div>
             
             <!-- Section 2: What We Did -->
@@ -1051,18 +1086,17 @@
         
         async function analyze() {
             let domain = document.getElementById('domain').value.trim().toLowerCase();
-            let location = document.getElementById('location').value.trim();
             
             // Clean up common input mistakes
             domain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
             
             if (!domain) {
-                alert('Please enter your website domain');
+                alert('Please enter a website domain');
                 return;
             }
             
             if (!domain.includes('.') || domain.length < 4) {
-                alert('Please enter a valid domain (e.g., yourcompany.com)');
+                alert('Please enter a valid domain (e.g., company.com)');
                 return;
             }
             
@@ -1077,7 +1111,6 @@
             
             try {
                 const payload = { domain };
-                if (location) payload.location = location;
                 
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
@@ -1138,15 +1171,22 @@
             
             // Company info
             document.getElementById('companyName').textContent = data.company_name;
+            document.getElementById('companyMeta').textContent = data.vertical + (data.location ? ' • ' + data.location : '');
             
-            let metaText = data.vertical;
-            if (data.services && data.services.length > 0) {
-                metaText = data.services.slice(0, 3).join(', ');
+            // Primary keyword and all keywords
+            document.getElementById('primaryKeyword').textContent = data.primary_keyword || data.vertical;
+            if (data.keywords && data.keywords.length > 1) {
+                document.getElementById('allKeywords').textContent = 'Also: ' + data.keywords.slice(1, 4).join(', ');
             }
-            if (data.location) {
-                metaText += ' • ' + data.location;
+            
+            // Instantly variables
+            if (data.instantly_variables) {
+                document.getElementById('copyKeyword').textContent = data.instantly_variables.keyword;
+                document.getElementById('copyVertical').textContent = data.instantly_variables.vertical;
+                document.getElementById('copyScore').textContent = data.instantly_variables.visibility_score;
+                document.getElementById('copyCompetitor').textContent = data.instantly_variables.top_competitor;
+                document.getElementById('emailSnippet').textContent = data.instantly_variables.email_snippet;
             }
-            document.getElementById('companyMeta').textContent = metaText;
             
             // Score circle
             const circumference = 490;
@@ -1186,13 +1226,11 @@
             document.getElementById('scoreMeaningTitle').textContent = meanings[grade].title;
             document.getElementById('scoreMeaningText').textContent = meanings[grade].text;
             
-            // Query intro - show all services being queried
-            const serviceTerm = (data.services && data.services.length > 0) ? data.services[0] : data.vertical;
-            const allTerms = (data.services && data.services.length > 0) ? [...data.services, data.vertical] : [data.vertical];
-            const servicesText = allTerms.length > 1 ? allTerms.slice(0, -1).join(', ') : allTerms[0];
-            document.getElementById('queryIntro').innerHTML = data.location 
-                ? `We queried GPT-5 and Perplexity for each of your services: <strong>${servicesText}</strong> — both locally (${data.location}) and nationally:`
-                : `We queried GPT-5 and Perplexity for each of your services: <strong>${servicesText}</strong>:`;
+            // Query intro - show keywords being queried (vertical-based)
+            const primaryKw = data.primary_keyword || data.vertical;
+            const allKws = data.keywords && data.keywords.length > 0 ? data.keywords : [data.vertical];
+            const serviceTerm = primaryKw; // Keep for later use
+            document.getElementById('queryIntro').innerHTML = `We queried GPT-5 and Perplexity using your detected keywords: <strong>${allKws.slice(0, 3).join(', ')}</strong>. These are the exact vertical searches your potential customers make:`;
             
             // Query stats
             document.getElementById('queriesAsked').textContent = data.total_queries;
@@ -1221,20 +1259,21 @@
             // Query results from API - with actual AI snippets
             const queryResults = data.query_results || [];
             
-            // Count by type
+            // Count by type and keyword
             const intentCounts = {};
-            const localCount = queryResults.filter(q => q.location_type === 'local').length;
-            const nationalCount = queryResults.filter(q => q.location_type === 'national').length;
+            const keywordCounts = {};
             queryResults.forEach(q => {
                 intentCounts[q.query_type] = (intentCounts[q.query_type] || 0) + 1;
+                const kw = q.keyword || q.service || 'other';
+                keywordCounts[kw] = (keywordCounts[kw] || 0) + 1;
             });
             
             // Intent type labels
             const intentLabels = {
                 'research': { icon: '🔍', label: 'Research', color: 'var(--accent-blue)' },
                 'quote': { icon: '💰', label: 'Quote Request', color: 'var(--accent-green)' },
-                'urgent': { icon: '⚡', label: 'Urgent Need', color: 'var(--accent-yellow)' },
-                'compare': { icon: '⚖️', label: 'Comparison', color: 'var(--accent-purple)' }
+                'supplier': { icon: '🏭', label: 'Supplier Search', color: 'var(--accent-purple)' },
+                'compare': { icon: '⚖️', label: 'Comparison', color: 'var(--accent-yellow)' }
             };
             
             document.getElementById('queryList').innerHTML = `
@@ -1243,8 +1282,9 @@
                         const info = intentLabels[type] || { icon: '❓', label: type, color: 'var(--text-muted)' };
                         return `<span style="background: ${info.color}22; color: ${info.color}; padding: 4px 10px; border-radius: 12px;">${info.icon} ${count} ${info.label}</span>`;
                     }).join('')}
-                    ${localCount > 0 ? `<span style="background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); padding: 4px 10px; border-radius: 12px;">📍 ${localCount} Local</span>` : ''}
-                    <span style="background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); padding: 4px 10px; border-radius: 12px;">🌎 ${nationalCount} National</span>
+                    ${Object.entries(keywordCounts).slice(0, 3).map(([kw, count]) => 
+                        `<span style="background: rgba(34, 197, 94, 0.15); color: var(--accent-green); padding: 4px 10px; border-radius: 12px;">🏭 ${kw}</span>`
+                    ).join('')}
                 </div>
             ` + queryResults.map((q, i) => {
                 const intentInfo = intentLabels[q.query_type] || { icon: '❓', label: q.query_type, color: 'var(--text-muted)' };
@@ -1267,8 +1307,7 @@
                             <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px;">
                                 <span style="font-size: 0.75rem; background: rgba(100,100,100,0.2); padding: 2px 8px; border-radius: 8px;">${platformIcon} ${platformName}</span>
                                 <span style="font-size: 0.75rem; background: ${intentInfo.color}22; color: ${intentInfo.color}; padding: 2px 8px; border-radius: 8px;">${intentInfo.icon} ${intentInfo.label}</span>
-                                <span style="font-size: 0.75rem; background: rgba(34, 197, 94, 0.15); color: var(--accent-green); padding: 2px 8px; border-radius: 8px;">${q.service}</span>
-                                <span style="font-size: 0.75rem; background: ${q.location_type === 'local' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(139, 92, 246, 0.15)'}; color: ${q.location_type === 'local' ? 'var(--accent-blue)' : 'var(--accent-purple)'}; padding: 2px 8px; border-radius: 8px;">${q.location_type === 'local' ? '📍 Local' : '🌎 National'}</span>
+                                <span style="font-size: 0.75rem; background: rgba(34, 197, 94, 0.15); color: var(--accent-green); padding: 2px 8px; border-radius: 8px;">🏭 ${q.keyword || q.service || 'keyword'}</span>
                             </div>
                             <div class="query-text" style="font-weight: 500; margin-bottom: 8px;">"${q.query.replace(/\?.*$/, '?')}"</div>
                             ${highlightedSnippet ? `
@@ -1526,6 +1565,36 @@
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closeModal();
         });
+        
+        // Copy Instantly variables
+        function copyInstantlyVars() {
+            if (!lastAnalysisData || !lastAnalysisData.instantly_variables) {
+                alert('No data to copy');
+                return;
+            }
+            
+            const vars = lastAnalysisData.instantly_variables;
+            const text = `keyword: ${vars.keyword}
+vertical: ${vars.vertical}
+visibility_score: ${vars.visibility_score}
+top_competitor: ${vars.top_competitor}
+
+Email snippet:
+${vars.email_snippet}`;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.style.background = 'var(--accent-green)';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy: ' + err);
+            });
+        }
     </script>
 </body>
 </html>

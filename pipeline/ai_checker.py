@@ -1,9 +1,11 @@
 """
-AI Visibility Checker - Query multiple AI chatbots to check domain mentions
+AI Visibility Checker v2 - Vertical-Based Queries
+
+Queries AI chatbots using specific manufacturing keywords instead of location.
 
 Uses:
 - Perplexity API (sonar model with web search)
-- OpenAI ChatGPT (gpt-4o-mini with web browsing context)
+- OpenAI ChatGPT (gpt-5)
 """
 
 import re
@@ -18,11 +20,10 @@ class AIResponse:
     """Single AI response"""
     platform: str  # 'perplexity' or 'chatgpt'
     query: str
-    query_type: str = ""  # 'research', 'compare', 'quote', 'urgent'
-    service: str = ""  # which service this query is about
-    location_type: str = ""  # 'local' or 'national'
+    query_type: str = ""  # 'research', 'compare', 'quote', 'supplier'
+    keyword: str = ""  # which keyword this query is about
     response: str = ""
-    response_snippet: str = ""  # First 300 chars for display
+    response_snippet: str = ""  # First 400 chars for display
     mentions_target: bool = False
     competitors_found: list = field(default_factory=list)
 
@@ -33,7 +34,9 @@ class VisibilityReport:
     domain: str
     company_name: str
     vertical: str
-    location: str
+    primary_keyword: str = ""
+    keywords: list = field(default_factory=list)
+    location: str = ""  # Optional, kept for reference
     
     # Scores
     total_queries: int = 0
@@ -53,6 +56,27 @@ class VisibilityReport:
     responses: list = field(default_factory=list)
 
 
+# Query templates - VERTICAL-BASED (not location-based)
+QUERY_TEMPLATES = {
+    "research": [
+        "Find me {keyword} manufacturing companies",
+        "Best {keyword} manufacturers in the United States",
+        "Top {keyword} suppliers",
+    ],
+    "quote": [
+        "I need a quote for {keyword} services - who are the best companies to contact?",
+        "Looking for {keyword} manufacturers that can handle production orders",
+    ],
+    "supplier": [
+        "Who are the leading {keyword} suppliers for {vertical} industry?",
+        "Reliable {keyword} companies for {vertical} applications",
+    ],
+    "compare": [
+        "Compare {keyword} manufacturers - who has the best capabilities?",
+    ],
+}
+
+
 def extract_domains(text: str) -> list[str]:
     """Extract domain names from text"""
     pattern = r'\b(?:https?://)?(?:www\.)?([a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?)\b'
@@ -63,12 +87,13 @@ def extract_domains(text: str) -> list[str]:
               'instagram.com', 'wikipedia.org', 'amazon.com', 'reddit.com', 'yelp.com',
               'bbb.org', 'glassdoor.com', 'indeed.com', 'craigslist.org', 'forbes.com',
               'businessinsider.com', 'thomasnet.com', 'dnb.com', 'zoominfo.com',
-              'openai.com', 'perplexity.ai', 'chatgpt.com'}
+              'openai.com', 'perplexity.ai', 'chatgpt.com', 'github.com', 'medium.com',
+              'shopify.com', 'wordpress.com', 'wix.com', 'squarespace.com'}
     
     return [d for d in set(matches) if d not in ignore and len(d) > 4]
 
 
-def check_domain_mentioned(text: str, domain: str) -> bool:
+def check_domain_mentioned(text: str, domain: str, company_name: str = "") -> bool:
     """Check if domain or company appears in text"""
     text_lower = text.lower()
     domain_clean = domain.lower().replace('www.', '')
@@ -81,6 +106,12 @@ def check_domain_mentioned(text: str, domain: str) -> bool:
     domain_name = domain_clean.split('.')[0]
     if len(domain_name) > 3 and domain_name in text_lower:
         return True
+    
+    # Check company name if provided
+    if company_name and len(company_name) > 3:
+        company_lower = company_name.lower()
+        if company_lower in text_lower:
+            return True
     
     return False
 
@@ -113,7 +144,7 @@ class AIChecker:
                         "messages": [
                             {
                                 "role": "system", 
-                                "content": "You are a helpful business research assistant. When recommending companies, always include their website domains. Be specific and mention actual company names and websites."
+                                "content": "You are a helpful manufacturing industry research assistant. When recommending companies, always include their website domains. Be specific and mention actual company names and websites. Focus on US-based manufacturers."
                             },
                             {"role": "user", "content": prompt}
                         ],
@@ -125,7 +156,7 @@ class AIChecker:
                 data = response.json()
                 return data.get("choices", [{}])[0].get("message", {}).get("content", "")
         except Exception as e:
-            print(f"Perplexity error: {e}")
+            print(f"    ⚠ Perplexity error: {e}")
             return ""
     
     async def query_chatgpt(self, prompt: str) -> str:
@@ -142,15 +173,15 @@ class AIChecker:
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "gpt-5.2-2025-12-11",
+                        "model": "gpt-4o-mini",
                         "messages": [
                             {
                                 "role": "system", 
-                                "content": "You are a helpful business research assistant. When recommending companies, always include their website domains. Be specific and mention actual company names and their websites."
+                                "content": "You are a helpful manufacturing industry research assistant. When recommending companies, always include their website domains. Be specific and mention actual company names and their websites. Focus on US-based manufacturers."
                             },
                             {"role": "user", "content": prompt}
                         ],
-                        "max_completion_tokens": 1000,
+                        "max_tokens": 1000,
                         "temperature": 0.3
                     }
                 )
@@ -158,76 +189,94 @@ class AIChecker:
                 data = response.json()
                 return data.get("choices", [{}])[0].get("message", {}).get("content", "")
         except Exception as e:
-            print(f"ChatGPT error: {e}")
+            print(f"    ⚠ ChatGPT error: {e}")
             return ""
+    
+    def build_queries(
+        self,
+        primary_keyword: str,
+        keywords: list,
+        vertical: str
+    ) -> list[tuple[str, str, str]]:
+        """
+        Build query list based on keywords.
+        Returns list of (query_text, keyword, query_type).
+        """
+        queries = []
+        
+        # Primary keyword gets all query types
+        for query_type, templates in QUERY_TEMPLATES.items():
+            for template in templates[:2]:  # Max 2 per type
+                query = template.format(
+                    keyword=primary_keyword,
+                    vertical=vertical
+                )
+                queries.append((query, primary_keyword, query_type))
+        
+        # Secondary keywords get research queries only (to keep costs down)
+        for kw in keywords[:2]:  # Max 2 secondary keywords
+            if kw != primary_keyword:
+                query = QUERY_TEMPLATES["research"][0].format(
+                    keyword=kw,
+                    vertical=vertical
+                )
+                queries.append((query, kw, "research"))
+        
+        return queries
     
     async def check_visibility(
         self,
         domain: str,
         company_name: str,
         vertical: str,
-        location: str = "",
-        services: list = None
+        primary_keyword: str = "",
+        keywords: list = None,
+        location: str = "",  # Optional, kept for reference
+        services: list = None  # Legacy compatibility
     ) -> VisibilityReport:
         """
-        Check AI visibility for a domain across multiple platforms.
+        Check AI visibility for a domain using vertical-based queries.
         """
+        # Handle legacy 'services' parameter
+        if keywords is None and services:
+            keywords = services
+        keywords = keywords or []
+        
+        # If no primary keyword, use first keyword or vertical
+        if not primary_keyword:
+            primary_keyword = keywords[0] if keywords else vertical
+        
         report = VisibilityReport(
             domain=domain,
             company_name=company_name,
             vertical=vertical,
+            primary_keyword=primary_keyword,
+            keywords=keywords,
             location=location
         )
         
-        # Build queries - for EACH service keyword, multiple intent types
+        # Build queries
+        queries = self.build_queries(primary_keyword, keywords, vertical)
         
-        # Collect all terms to query: services + vertical (deduplicated)
-        # Limit to 2 terms max for speed (keeps analysis under 1 min)
-        all_terms = []
-        if services:
-            all_terms.extend(services[:2])  # Up to 2 detected services
-        if vertical and vertical.lower() not in [s.lower() for s in all_terms] and len(all_terms) < 2:
-            all_terms.append(vertical)
-        
-        # Ensure we have at least one term
-        if not all_terms:
-            all_terms = ["manufacturing"]
-        
-        # Build queries based on whether we have location
-        queries = []  # List of (query_text, service, intent_type, location_type)
-        
-        for term in all_terms:
-            if location:
-                # Location-specific queries - what real customers would ask
-                queries.extend([
-                    (f"What are the best {term} companies in {location}? Please include their websites.", term, 'research', 'local'),
-                    (f"Who are the top {term} companies near {location}? Include websites.", term, 'research', 'local'),
-                    (f"I need a quote for {term} services in {location}. Who should I contact?", term, 'quote', 'local'),
-                ])
-            else:
-                # National queries only when no location
-                queries.extend([
-                    (f"What are the best {term} companies? Please include their websites.", term, 'research', 'national'),
-                    (f"Who are the top {term} companies in the United States? Include websites.", term, 'research', 'national'),
-                    (f"I need a quote for {term} services. Who should I contact?", term, 'quote', 'national'),
-                ])
-        
-        # Skip urgent/compare for now to keep analysis fast
-        # (Can re-enable later if needed)
+        if not queries:
+            print("  ⚠ No queries to run")
+            return report
         
         domain_clean = domain.lower().replace('www.', '')
         
-        for query_text, service, intent_type, loc_type in queries:
+        print(f"  📊 Running {len(queries)} queries across platforms...")
+        
+        for query_text, keyword, query_type in queries:
             # Query Perplexity
             if self.perplexity_key:
-                print(f"  → Perplexity [{intent_type}]: {query_text[:50]}...")
+                print(f"    → Perplexity [{query_type}]: {keyword}")
                 response = await self.query_perplexity(query_text)
                 
                 if response:
                     report.perplexity_queries += 1
                     report.total_queries += 1
                     
-                    mentioned = check_domain_mentioned(response, domain)
+                    mentioned = check_domain_mentioned(response, domain, company_name)
                     if mentioned:
                         report.perplexity_mentions += 1
                         report.total_mentions += 1
@@ -239,7 +288,7 @@ class AIChecker:
                             report.competitors[d] = report.competitors.get(d, 0) + 1
                             competitors_in_response.append(d)
                     
-                    # Create snippet (first 400 chars, clean up)
+                    # Create snippet
                     snippet = response[:400].strip()
                     if len(response) > 400:
                         snippet = snippet.rsplit(' ', 1)[0] + '...'
@@ -247,9 +296,8 @@ class AIChecker:
                     report.responses.append(AIResponse(
                         platform='perplexity',
                         query=query_text,
-                        query_type=intent_type,
-                        service=service,
-                        location_type=loc_type,
+                        query_type=query_type,
+                        keyword=keyword,
                         response=response,
                         response_snippet=snippet,
                         mentions_target=mentioned,
@@ -260,14 +308,14 @@ class AIChecker:
             
             # Query ChatGPT
             if self.openai_key:
-                print(f"  → GPT-5 [{intent_type}]: {query_text[:50]}...")
+                print(f"    → GPT [{query_type}]: {keyword}")
                 response = await self.query_chatgpt(query_text)
                 
                 if response:
                     report.chatgpt_queries += 1
                     report.total_queries += 1
                     
-                    mentioned = check_domain_mentioned(response, domain)
+                    mentioned = check_domain_mentioned(response, domain, company_name)
                     if mentioned:
                         report.chatgpt_mentions += 1
                         report.total_mentions += 1
@@ -287,9 +335,8 @@ class AIChecker:
                     report.responses.append(AIResponse(
                         platform='chatgpt',
                         query=query_text,
-                        query_type=intent_type,
-                        service=service,
-                        location_type=loc_type,
+                        query_type=query_type,
+                        keyword=keyword,
                         response=response,
                         response_snippet=snippet,
                         mentions_target=mentioned,
@@ -301,6 +348,8 @@ class AIChecker:
         # Calculate visibility score
         if report.total_queries > 0:
             report.visibility_score = (report.total_mentions / report.total_queries) * 100
+        
+        print(f"  ✓ Complete: {report.total_mentions}/{report.total_queries} mentions ({report.visibility_score:.0f}%)")
         
         return report
 
@@ -316,18 +365,22 @@ async def test():
         openai_key=os.getenv('OPENAI_API_KEY')
     )
     
-    print("\n🔍 Testing AI Visibility Checker (Perplexity + ChatGPT)\n")
+    print("\n🔍 Testing Vertical-Based AI Visibility Checker (v2)\n")
+    print("="*60)
     
     report = await checker.check_visibility(
         domain="xometry.com",
         company_name="Xometry",
-        vertical="CNC machining",
-        location="Denver, CO"
+        vertical="CNC Machining",
+        primary_keyword="cnc machining",
+        keywords=["cnc machining", "3d printing", "injection molding"]
     )
     
-    print(f"\n{'='*50}")
+    print(f"\n{'='*60}")
     print(f"📊 VISIBILITY REPORT: {report.domain}")
-    print(f"{'='*50}")
+    print(f"{'='*60}")
+    print(f"\nPrimary Keyword: {report.primary_keyword}")
+    print(f"Vertical: {report.vertical}")
     print(f"\nTotal Queries: {report.total_queries}")
     print(f"Total Mentions: {report.total_mentions}")
     print(f"Score: {report.visibility_score:.0f}%")
