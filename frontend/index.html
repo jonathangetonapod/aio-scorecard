@@ -815,11 +815,11 @@
                     <p><strong>Query Types We Test:</strong></p>
                     <ul>
                         <li><strong>Research queries:</strong> "What are the best [service] companies in [your city]?"</li>
-                        <li><strong>Comparison queries:</strong> "Who are the top [service] companies near [location]?"</li>
-                        <li><strong>Intent queries:</strong> "I need a quote for [service] in [location]"</li>
+                        <li><strong>Supplier queries:</strong> "Who are the best [specific capability] manufacturers?"</li>
+                        <li><strong>Quote queries:</strong> "I need a quote for [specific capability] services"</li>
                     </ul>
                     <p style="background: rgba(34, 197, 94, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px;">
-                        <strong>✓ Location-Specific:</strong> Every query includes your city/region so we test your LOCAL visibility, not national results.
+                        <strong>✓ Vertical-Specific:</strong> We extract your unique manufacturing keywords and test visibility against vertical competitors.
                     </p>
                 </div>
                 
@@ -850,7 +850,7 @@
                     <h3>🛠️ How to Improve Your Score</h3>
                     <p>AI visibility is trainable. Here's what works:</p>
                     <ul>
-                        <li><strong>Website Content:</strong> Use the exact language buyers search for (service names, locations, industries served)</li>
+                        <li><strong>Website Content:</strong> Use the exact language buyers search for (specific capabilities, processes, materials)</li>
                         <li><strong>Published Authority:</strong> Case studies, guides, and FAQs that AI can cite as sources</li>
                         <li><strong>Digital Footprint:</strong> Industry directories, Google Business Profile, customer reviews, press mentions</li>
                         <li><strong>Structured Data:</strong> Schema markup that helps AI understand your services</li>
@@ -1171,7 +1171,7 @@
             
             // Company info
             document.getElementById('companyName').textContent = data.company_name;
-            document.getElementById('companyMeta').textContent = data.vertical + (data.location ? ' • ' + data.location : '');
+            document.getElementById('companyMeta').textContent = data.vertical;
             
             // Primary keyword and all keywords
             document.getElementById('primaryKeyword').textContent = data.primary_keyword || data.vertical;
@@ -1218,7 +1218,7 @@
                 },
                 poor: {
                     title: '🚨 AI doesn\'t know about you.',
-                    text: `AI mentioned you in only ${data.total_mentions} out of ${data.total_queries} queries. When customers ask AI for ${data.vertical} recommendations${data.location ? ' in ' + data.location : ''}, you're invisible. Your competitors are capturing these leads instead.`
+                    text: `AI mentioned you in only ${data.total_mentions} out of ${data.total_queries} queries. When customers ask AI for ${data.primary_keyword || data.vertical} manufacturers, you're invisible. Your competitors are capturing these leads instead.`
                 }
             };
             
@@ -1339,7 +1339,7 @@
                 const topComp = validCompetitors[0];
                 const compName = topComp.company_name || topComp.domain;
                 document.getElementById('competitorIntro').innerHTML = `
-                    <p><strong>${compName}</strong> was mentioned <strong>${topComp.mentions} times</strong> across our AI queries${data.location ? ' about ' + data.location : ''}. 
+                    <p><strong>${compName}</strong> was mentioned <strong>${topComp.mentions} times</strong> across our AI queries for "${data.primary_keyword || data.vertical}". 
                     ${score < 50 ? 'While you were barely visible, ' : 'Even with good visibility, '}
                     we found <strong>${validCompetitors.length} verified competitors</strong>${relevantCount > 0 ? ` (${relevantCount} confirmed in your industry)` : ''} being recommended to your potential customers.</p>
                 `;
@@ -1402,7 +1402,7 @@
             // - Local B2B: ~100-200 relevant searches/month; National: ~300-500
             // - 2-3% of searches convert to inquiries
             // - 10-20% of inquiries convert to customers
-            const monthlySearches = data.location ? 150 : 350;
+            const monthlySearches = 350; // National vertical searches
             const searchToLeadRate = 0.025;
             const leadToCustomerRate = 0.15;
             
@@ -1433,7 +1433,7 @@
                 
                 <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
                     <strong>How we calculated this:</strong><br>
-                    • Est. ${monthlySearches} AI searches/month for "${serviceTerm}"${data.location ? ' in ' + data.location : ''}<br>
+                    • Est. ${monthlySearches} AI searches/month for "${serviceTerm}" manufacturers<br>
                     • ${totalLeads} potential leads (${(searchToLeadRate*100).toFixed(1)}% inquiry rate)<br>
                     • ${leadsToCompetitors} leads going to competitors (${Math.round(competitorShare * 100)}% of market)<br>
                     • × ${(leadToCustomerRate*100)}% close rate × $${dealSize.toLocaleString()} avg ${serviceTerm} deal<br>
@@ -1448,7 +1448,7 @@
                 recs.push({
                     icon: '🌐',
                     title: 'Strengthen Your Website Content',
-                    desc: `AI learns from web content. Make sure your site clearly states you offer ${data.vertical} services${data.location ? ' in ' + data.location : ''}, your capabilities, and your service areas. Use natural language that matches how customers search.`
+                    desc: `AI learns from web content. Make sure your site clearly states your specific capabilities like "${data.primary_keyword || data.vertical}". Use the exact terms buyers search for.`
                 });
             }
             
