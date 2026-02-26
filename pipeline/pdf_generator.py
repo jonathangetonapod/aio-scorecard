@@ -84,7 +84,7 @@ def generate_report_html(data: dict) -> str:
     # Build competitor rows
     competitor_rows = ""
     for i, c in enumerate(competitors[:8], 1):
-        relevant_badge = '<span style="color: #059669;">✓</span>' if c.get('is_relevant') else '—'
+        relevant_badge = '<span style="color: #059669;">✓</span>' if c.get('is_relevant') else '-'
         competitor_rows += f'''
             <tr>
                 <td style="text-align: center;">{i}</td>
