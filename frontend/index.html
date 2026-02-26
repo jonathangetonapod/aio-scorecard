@@ -1016,9 +1016,6 @@
                     <div id="emailSnippet" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary);"></div>
                 </div>
                 
-                <button onclick="copyInstantlyVars()" style="margin-top: 15px; background: linear-gradient(135deg, #22c55e, #16a34a); width: 100%;">
-                    📋 Copy All Variables
-                </button>
             </div>
             
             <!-- Section 2: What We Did -->
@@ -1659,35 +1656,6 @@
             if (e.key === 'Escape') closeModal();
         });
         
-        // Copy Instantly variables
-        function copyInstantlyVars() {
-            if (!lastAnalysisData || !lastAnalysisData.instantly_variables) {
-                alert('No data to copy');
-                return;
-            }
-            
-            const vars = lastAnalysisData.instantly_variables;
-            const text = `keyword: ${vars.keyword}
-vertical: ${vars.vertical}
-visibility_score: ${vars.visibility_score}
-top_competitor: ${vars.top_competitor}
-
-Email snippet:
-${vars.email_snippet}`;
-            
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = event.target;
-                const originalText = btn.textContent;
-                btn.textContent = '✓ Copied!';
-                btn.style.background = 'var(--accent-green)';
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                    btn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
-                }, 2000);
-            }).catch(err => {
-                alert('Failed to copy: ' + err);
-            });
-        }
     </script>
 </body>
 </html>
