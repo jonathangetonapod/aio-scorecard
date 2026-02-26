@@ -1167,18 +1167,31 @@
                 const data = await response.json();
                 
                 if (!response.ok) {
-                    throw new Error(data.detail || 'Analysis failed');
+                    let errorMsg = data.detail || 'Analysis failed';
+                    // Make error messages more user-friendly
+                    if (errorMsg.includes('API key')) {
+                        errorMsg = 'Invalid or missing API key. Please check your API keys in the settings below.';
+                    } else if (errorMsg.includes('rate limit') || errorMsg.includes('429')) {
+                        errorMsg = 'API rate limit reached. Please wait a minute and try again, or use your own API keys.';
+                    }
+                    throw new Error(errorMsg);
                 }
                 
                 if (data.total_queries === 0) {
-                    throw new Error('No AI queries completed. Please try again.');
+                    throw new Error('No AI queries completed. This usually means API rate limits were hit. Please try again in a minute, or add your own API keys below.');
+                }
+                
+                // Show warning if we got partial results
+                if (data.chatgpt_queries === 0 && data.perplexity_queries > 0) {
+                    console.log('Note: OpenAI queries failed, showing Perplexity results only');
+                } else if (data.perplexity_queries === 0 && data.chatgpt_queries > 0) {
+                    console.log('Note: Perplexity queries failed, showing OpenAI results only');
                 }
                 
                 showResults(data);
                 
             } catch (error) {
-                alert('Error: ' + error.message);
-                resetAnalysis();
+                showError(error.message);
             }
         }
         
@@ -1206,14 +1219,68 @@
             });
         }
         
+        function showError(message) {
+            document.getElementById('loading').classList.remove('active');
+            document.getElementById('inputSection').style.display = 'block';
+            document.getElementById('explainerBox').style.display = 'block';
+            
+            // Create or update error display
+            let errorDiv = document.getElementById('errorDisplay');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'errorDisplay';
+                errorDiv.style.cssText = 'background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: center;';
+                document.getElementById('inputSection').before(errorDiv);
+            }
+            
+            errorDiv.innerHTML = `
+                <div style="font-size: 2rem; margin-bottom: 10px;">⚠️</div>
+                <div style="font-weight: 600; color: var(--accent-red); margin-bottom: 10px;">Analysis Failed</div>
+                <div style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6;">${message}</div>
+                <button onclick="this.parentElement.remove()" style="margin-top: 15px; background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 8px 20px; font-size: 0.9rem;">Dismiss</button>
+            `;
+            
+            // Reset loading icons
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('icon' + i).className = 'status-icon waiting';
+                document.getElementById('icon' + i).textContent = '○';
+                document.getElementById('text' + i).className = 'status-text muted';
+            }
+        }
+        
         function showResults(data) {
             document.getElementById('loading').classList.remove('active');
+            
+            // Remove any error display
+            const errorDiv = document.getElementById('errorDisplay');
+            if (errorDiv) errorDiv.remove();
             
             // Store for PDF export
             lastAnalysisData = data;
             
             const score = Math.round(data.visibility_score);
             const grade = score >= 80 ? 'excellent' : score >= 50 ? 'good' : score >= 25 ? 'fair' : 'poor';
+            
+            // Show warnings if any (partial results)
+            if (data.warnings && data.warnings.length > 0) {
+                let warningDiv = document.getElementById('warningBanner');
+                if (!warningDiv) {
+                    warningDiv = document.createElement('div');
+                    warningDiv.id = 'warningBanner';
+                    warningDiv.style.cssText = 'background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 15px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;';
+                    document.getElementById('results').prepend(warningDiv);
+                }
+                warningDiv.innerHTML = `
+                    <span style="font-size: 1.3rem;">⚠️</span>
+                    <div>
+                        <div style="font-weight: 600; color: var(--accent-yellow);">Partial Results</div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary);">${data.warnings.join('. ')}</div>
+                    </div>
+                `;
+            } else {
+                const warningDiv = document.getElementById('warningBanner');
+                if (warningDiv) warningDiv.remove();
+            }
             
             // Company info
             document.getElementById('companyName').textContent = data.company_name;

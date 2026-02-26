@@ -148,70 +148,118 @@ class AIChecker:
         if not perplexity_key and not openai_key:
             raise ValueError("At least one API key required (Perplexity or OpenAI)")
     
-    async def query_perplexity(self, prompt: str) -> str:
+    async def query_perplexity(self, prompt: str, retries: int = 2) -> str:
         """Query Perplexity API with web search"""
         if not self.perplexity_key:
             return ""
         
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                response = await client.post(
-                    "https://api.perplexity.ai/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {self.perplexity_key}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "sonar",
-                        "messages": [
-                            {
-                                "role": "system", 
-                                "content": "You are a helpful manufacturing industry research assistant. When recommending companies, always include their website domains. Be specific and mention actual company names and websites. Focus on US-based manufacturers."
-                            },
-                            {"role": "user", "content": prompt}
-                        ],
-                        "max_tokens": 1000,
-                        "temperature": 0.3
-                    }
-                )
-                response.raise_for_status()
-                data = response.json()
-                return data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        except Exception as e:
-            print(f"    ⚠ Perplexity error: {e}")
-            return ""
+        for attempt in range(retries + 1):
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(
+                        "https://api.perplexity.ai/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {self.perplexity_key}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": "sonar",
+                            "messages": [
+                                {
+                                    "role": "system", 
+                                    "content": "You are a helpful manufacturing industry research assistant. When recommending companies, always include their website domains. Be specific and mention actual company names and websites. Focus on US-based manufacturers."
+                                },
+                                {"role": "user", "content": prompt}
+                            ],
+                            "max_tokens": 1000,
+                            "temperature": 0.3
+                        }
+                    )
+                    
+                    if response.status_code == 429:  # Rate limit
+                        if attempt < retries:
+                            wait = (attempt + 1) * 2
+                            print(f"    ⏳ Perplexity rate limit, waiting {wait}s...")
+                            await asyncio.sleep(wait)
+                            continue
+                        print(f"    ⚠ Perplexity rate limited (try again later)")
+                        return ""
+                    
+                    if response.status_code == 401:
+                        print(f"    ⚠ Perplexity: Invalid API key")
+                        self.perplexity_key = None  # Disable further attempts
+                        return ""
+                    
+                    response.raise_for_status()
+                    data = response.json()
+                    return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    
+            except httpx.TimeoutException:
+                print(f"    ⚠ Perplexity timeout")
+                return ""
+            except Exception as e:
+                if attempt < retries:
+                    await asyncio.sleep(1)
+                    continue
+                print(f"    ⚠ Perplexity error: {type(e).__name__}")
+                return ""
+        return ""
     
-    async def query_chatgpt(self, prompt: str) -> str:
+    async def query_chatgpt(self, prompt: str, retries: int = 2) -> str:
         """Query OpenAI o3-mini (reasoning model)"""
         if not self.openai_key:
             return ""
         
-        try:
-            async with httpx.AsyncClient(timeout=180.0) as client:  # Longer timeout for reasoning model
-                response = await client.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {self.openai_key}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "o3-mini",
-                        "messages": [
-                            {
-                                "role": "system", 
-                                "content": "You are a helpful manufacturing industry research assistant. When recommending companies, always include their website domains. Be specific and mention actual company names and their websites. Focus on US-based manufacturers."
-                            },
-                            {"role": "user", "content": prompt}
-                        ],
-                        "max_completion_tokens": 4000
-                    }
-                )
-                response.raise_for_status()
-                data = response.json()
-                return data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        except Exception as e:
-            print(f"    ⚠ ChatGPT error: {e}")
-            return ""
+        for attempt in range(retries + 1):
+            try:
+                async with httpx.AsyncClient(timeout=180.0) as client:
+                    response = await client.post(
+                        "https://api.openai.com/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {self.openai_key}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": "o3-mini",
+                            "messages": [
+                                {
+                                    "role": "system", 
+                                    "content": "You are a helpful manufacturing industry research assistant. When recommending companies, always include their website domains. Be specific and mention actual company names and their websites. Focus on US-based manufacturers."
+                                },
+                                {"role": "user", "content": prompt}
+                            ],
+                            "max_completion_tokens": 4000
+                        }
+                    )
+                    
+                    if response.status_code == 429:  # Rate limit
+                        if attempt < retries:
+                            wait = (attempt + 1) * 3  # Longer wait for OpenAI
+                            print(f"    ⏳ OpenAI rate limit, waiting {wait}s...")
+                            await asyncio.sleep(wait)
+                            continue
+                        print(f"    ⚠ OpenAI rate limited")
+                        return ""
+                    
+                    if response.status_code == 401:
+                        print(f"    ⚠ OpenAI: Invalid API key")
+                        self.openai_key = None
+                        return ""
+                    
+                    response.raise_for_status()
+                    data = response.json()
+                    return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    
+            except httpx.TimeoutException:
+                print(f"    ⚠ OpenAI timeout (reasoning models are slow)")
+                return ""
+            except Exception as e:
+                if attempt < retries:
+                    await asyncio.sleep(2)
+                    continue
+                print(f"    ⚠ OpenAI error: {type(e).__name__}")
+                return ""
+        return ""
     
     def build_queries(
         self,

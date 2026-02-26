@@ -92,6 +92,9 @@ class AnalyzeResponse(BaseModel):
     chatgpt_queries: int = 0
     chatgpt_mentions: int = 0
     
+    # Warnings for partial results
+    warnings: list[str] = []
+    
     # Query results with snippets
     query_results: list[QueryResult] = []
     
@@ -186,7 +189,10 @@ async def analyze_domain(req: AnalyzeRequest):
         
         # Ensure we got at least some queries through
         if report.total_queries == 0:
-            raise HTTPException(status_code=500, detail="All AI queries failed. Please try again.")
+            raise HTTPException(
+                status_code=500, 
+                detail="All AI queries failed - likely due to rate limits or invalid API keys. Please wait a minute and try again, or check your API keys."
+            )
         
         # Build query results
         query_results = [
@@ -236,6 +242,13 @@ async def analyze_domain(req: AnalyzeRequest):
             email_snippet=f"I noticed you're not ranking in LLMs for what you focus on: {req.primary_keyword}. I ran a report comparing you to other {req.primary_keyword} manufacturers, and this is where you rank. Can I send over the report?"
         )
         
+        # Build warnings for partial results
+        warnings = []
+        if report.perplexity_queries == 0 and perplexity_key:
+            warnings.append("Perplexity queries failed - results are from OpenAI only")
+        if report.chatgpt_queries == 0 and openai_key:
+            warnings.append("OpenAI queries failed (likely rate limited) - results are from Perplexity only")
+        
         return AnalyzeResponse(
             domain=report.domain,
             company_name=report.company_name,
@@ -252,7 +265,8 @@ async def analyze_domain(req: AnalyzeRequest):
             chatgpt_mentions=report.chatgpt_mentions,
             query_results=query_results,
             competitors=competitors,
-            instantly_variables=instantly_vars
+            instantly_variables=instantly_vars,
+            warnings=warnings
         )
         
     except HTTPException:
