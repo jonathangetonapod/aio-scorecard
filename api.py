@@ -292,6 +292,54 @@ async def generate_pdf_report(data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class TestKeyRequest(BaseModel):
+    key: str
+    provider: str  # "perplexity" or "openai"
+
+
+@app.post("/api/test-key")
+async def test_api_key(req: TestKeyRequest):
+    """Test if an API key is valid by making a minimal request"""
+    import httpx
+
+    try:
+        if req.provider == "perplexity":
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.post(
+                    "https://api.perplexity.ai/chat/completions",
+                    headers={"Authorization": f"Bearer {req.key}", "Content-Type": "application/json"},
+                    json={
+                        "model": "sonar",
+                        "messages": [{"role": "user", "content": "Hi"}],
+                        "max_tokens": 5
+                    }
+                )
+                if response.status_code == 401:
+                    return {"valid": False, "error": "Invalid API key"}
+                if response.status_code == 429:
+                    return {"valid": True, "note": "Key is valid (rate limited)"}
+                response.raise_for_status()
+                return {"valid": True}
+
+        elif req.provider == "openai":
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.get(
+                    "https://api.openai.com/v1/models",
+                    headers={"Authorization": f"Bearer {req.key}"}
+                )
+                if response.status_code == 401:
+                    return {"valid": False, "error": "Invalid API key"}
+                response.raise_for_status()
+                return {"valid": True}
+        else:
+            raise HTTPException(status_code=400, detail="Provider must be 'perplexity' or 'openai'")
+
+    except httpx.TimeoutException:
+        return {"valid": False, "error": "Request timed out"}
+    except Exception as e:
+        return {"valid": False, "error": str(e)}
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "version": "2.0"}

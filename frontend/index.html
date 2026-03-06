@@ -914,10 +914,18 @@
             <!-- API Keys (collapsible) -->
             <details style="margin-top: 20px; padding: 15px; background: rgba(226, 232, 240, 0.5); border-radius: 12px;">
                 <summary style="cursor: pointer; font-size: 0.9rem; color: var(--text-secondary);">⚙️ API Keys (optional - uses defaults if empty)</summary>
-                <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;">
-                    <input type="password" id="perplexityKey" placeholder="Perplexity API Key (pplx-...)" style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem;" />
-                    <input type="password" id="openaiKey" placeholder="OpenAI API Key (sk-...)" style="padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem;" />
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">Keys are not stored - only used for this analysis</div>
+                <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="password" id="perplexityKey" placeholder="Perplexity API Key (pplx-...)" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem;" />
+                        <button onclick="testKey('perplexity')" id="testPerplexityBtn" style="padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); cursor: pointer; font-size: 0.85rem; white-space: nowrap;">Test</button>
+                    </div>
+                    <div id="perplexityStatus" style="display: none; font-size: 0.8rem; margin-top: -6px; padding-left: 4px;"></div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="password" id="openaiKey" placeholder="OpenAI API Key (sk-...)" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem;" />
+                        <button onclick="testKey('openai')" id="testOpenaiBtn" style="padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); cursor: pointer; font-size: 0.85rem; white-space: nowrap;">Test</button>
+                    </div>
+                    <div id="openaiStatus" style="display: none; font-size: 0.8rem; margin-top: -6px; padding-left: 4px;"></div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Keys are saved in your browser and never sent to our servers.</div>
                 </div>
             </details>
         </div>
@@ -1106,7 +1114,68 @@
     
     <script>
         let uploadedLogo = null;
-        
+
+        // Load saved API keys from localStorage
+        (function loadSavedKeys() {
+            const savedPplx = localStorage.getItem('pplx_key');
+            const savedOpenai = localStorage.getItem('openai_key');
+            if (savedPplx) {
+                document.getElementById('perplexityKey').value = savedPplx;
+                showKeyStatus('perplexity', 'Saved key loaded', 'var(--accent-green)');
+            }
+            if (savedOpenai) {
+                document.getElementById('openaiKey').value = savedOpenai;
+                showKeyStatus('openai', 'Saved key loaded', 'var(--accent-green)');
+            }
+        })();
+
+        function showKeyStatus(provider, message, color) {
+            const el = document.getElementById(provider === 'perplexity' ? 'perplexityStatus' : 'openaiStatus');
+            el.style.display = 'block';
+            el.style.color = color;
+            el.textContent = message;
+        }
+
+        async function testKey(provider) {
+            const inputId = provider === 'perplexity' ? 'perplexityKey' : 'openaiKey';
+            const btnId = provider === 'perplexity' ? 'testPerplexityBtn' : 'testOpenaiBtn';
+            const key = document.getElementById(inputId).value.trim();
+
+            if (!key) {
+                showKeyStatus(provider, 'Please enter a key first', 'var(--accent-red)');
+                return;
+            }
+
+            const btn = document.getElementById(btnId);
+            btn.textContent = 'Testing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/test-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key, provider })
+                });
+                const data = await response.json();
+
+                if (data.valid) {
+                    localStorage.setItem(provider === 'perplexity' ? 'pplx_key' : 'openai_key', key);
+                    showKeyStatus(provider, 'Valid - key saved', 'var(--accent-green)');
+                    btn.textContent = 'Saved';
+                    setTimeout(() => { btn.textContent = 'Test'; }, 2000);
+                } else {
+                    localStorage.removeItem(provider === 'perplexity' ? 'pplx_key' : 'openai_key');
+                    showKeyStatus(provider, data.error || 'Invalid key', 'var(--accent-red)');
+                    btn.textContent = 'Test';
+                }
+            } catch (e) {
+                showKeyStatus(provider, 'Connection error', 'var(--accent-red)');
+                btn.textContent = 'Test';
+            }
+
+            btn.disabled = false;
+        }
+
         function handleLogoUpload(input) {
             if (input.files && input.files[0]) {
                 const file = input.files[0];
