@@ -302,6 +302,9 @@ async def test_api_key(req: TestKeyRequest):
     """Test if an API key is valid by making a minimal request"""
     import httpx
 
+    if not req.key or not req.key.strip():
+        return {"valid": False, "error": "Please enter an API key"}
+
     try:
         if req.provider == "perplexity":
             async with httpx.AsyncClient(timeout=15.0) as client:
