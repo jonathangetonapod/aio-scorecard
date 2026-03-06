@@ -149,17 +149,26 @@ class AIChecker:
             # Fall back to regex if no OpenAI key
             return check_domain_mentioned(response_text, domain, company_name)
 
-        prompt = f"""Analyze this AI response and determine if it specifically mentions or recommends the company "{company_name}" (website: {domain}).
+        domain_clean = domain.lower().replace('www.', '')
+        prompt = f"""I need you to check if a SPECIFIC company is mentioned in this text.
 
-IMPORTANT: Only answer YES if the response explicitly names this company or its website domain. Do NOT answer YES just because the response discusses the same industry or uses similar words.
+Company to find: "{company_name}"
+Domain to find: "{domain_clean}"
 
-AI Response:
+Rules:
+- Answer YES ONLY if you see the EXACT company name "{company_name}" or the EXACT domain "{domain_clean}" in the text
+- Similar-sounding companies are NOT matches. For example:
+  "Window World" is NOT "{company_name}"
+  "Windows Direct USA" is NOT "{company_name}"
+  "windowworld.com" is NOT "{domain_clean}"
+- Partial matches do NOT count. The company name or domain must appear as written above.
+
+Text to search:
 \"\"\"
 {response_text[:2000]}
 \"\"\"
 
-Does this response specifically mention or recommend "{company_name}" or "{domain}"?
-Reply with ONLY "YES" or "NO"."""
+Is "{company_name}" or "{domain_clean}" explicitly written in the text above? YES or NO only."""
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
