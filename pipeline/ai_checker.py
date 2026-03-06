@@ -170,7 +170,7 @@ Reply with ONLY "YES" or "NO"."""
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "gpt-4o-mini",
+                        "model": "gpt-5-mini-2025-08-07",
                         "messages": [{"role": "user", "content": prompt}],
                         "max_tokens": 5,
                         "temperature": 0
