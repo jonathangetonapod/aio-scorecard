@@ -135,13 +135,55 @@ def check_domain_mentioned(text: str, domain: str, company_name: str = "") -> bo
 
 class AIChecker:
     """Query AI chatbots and check for domain visibility"""
-    
+
     def __init__(self, perplexity_key: str = None, openai_key: str = None):
         self.perplexity_key = perplexity_key
         self.openai_key = openai_key
-        
+
         if not perplexity_key and not openai_key:
             raise ValueError("At least one API key required (Perplexity or OpenAI)")
+
+    async def verify_mention_with_llm(self, response_text: str, company_name: str, domain: str) -> bool:
+        """Use a fast LLM to verify if the company is actually mentioned/recommended."""
+        if not self.openai_key:
+            # Fall back to regex if no OpenAI key
+            return check_domain_mentioned(response_text, domain, company_name)
+
+        prompt = f"""Analyze this AI response and determine if it specifically mentions or recommends the company "{company_name}" (website: {domain}).
+
+IMPORTANT: Only answer YES if the response explicitly names this company or its website domain. Do NOT answer YES just because the response discusses the same industry or uses similar words.
+
+AI Response:
+\"\"\"
+{response_text[:2000]}
+\"\"\"
+
+Does this response specifically mention or recommend "{company_name}" or "{domain}"?
+Reply with ONLY "YES" or "NO"."""
+
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.openai_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "gpt-4o-mini",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": 5,
+                        "temperature": 0
+                    }
+                )
+                if resp.status_code != 200:
+                    return check_domain_mentioned(response_text, domain, company_name)
+
+                answer = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip().upper()
+                return answer.startswith("YES")
+        except Exception as e:
+            print(f"    ⚠ LLM verification failed ({type(e).__name__}), falling back to regex")
+            return check_domain_mentioned(response_text, domain, company_name)
     
     async def query_perplexity(self, prompt: str, retries: int = 2) -> str:
         """Query Perplexity API with web search"""
@@ -339,24 +381,24 @@ class AIChecker:
                 if response:
                     report.perplexity_queries += 1
                     report.total_queries += 1
-                    
-                    mentioned = check_domain_mentioned(response, domain, company_name)
+
+                    mentioned = await self.verify_mention_with_llm(response, company_name, domain)
                     if mentioned:
                         report.perplexity_mentions += 1
                         report.total_mentions += 1
-                    
+
                     # Extract competitors
                     competitors_in_response = []
                     for d in extract_domains(response):
                         if d != domain_clean and domain_clean.split('.')[0] not in d:
                             report.competitors[d] = report.competitors.get(d, 0) + 1
                             competitors_in_response.append(d)
-                    
+
                     # Create snippet
                     snippet = response[:400].strip()
                     if len(response) > 400:
                         snippet = snippet.rsplit(' ', 1)[0] + '...'
-                    
+
                     report.responses.append(AIResponse(
                         platform='perplexity',
                         query=query_text,
@@ -367,35 +409,35 @@ class AIChecker:
                         mentions_target=mentioned,
                         competitors_found=competitors_in_response[:5]
                     ))
-                
+
                 await asyncio.sleep(0.3)
-            
+
             # Query ChatGPT
             if self.openai_key:
                 print(f"    → GPT [{query_type}]: {keyword}")
                 response = await self.query_chatgpt(query_text)
-                
+
                 if response:
                     report.chatgpt_queries += 1
                     report.total_queries += 1
-                    
-                    mentioned = check_domain_mentioned(response, domain, company_name)
+
+                    mentioned = await self.verify_mention_with_llm(response, company_name, domain)
                     if mentioned:
                         report.chatgpt_mentions += 1
                         report.total_mentions += 1
-                    
+
                     # Extract competitors
                     competitors_in_response = []
                     for d in extract_domains(response):
                         if d != domain_clean and domain_clean.split('.')[0] not in d:
                             report.competitors[d] = report.competitors.get(d, 0) + 1
                             competitors_in_response.append(d)
-                    
+
                     # Create snippet
                     snippet = response[:400].strip()
                     if len(response) > 400:
                         snippet = snippet.rsplit(' ', 1)[0] + '...'
-                    
+
                     report.responses.append(AIResponse(
                         platform='chatgpt',
                         query=query_text,
@@ -406,7 +448,7 @@ class AIChecker:
                         mentions_target=mentioned,
                         competitors_found=competitors_in_response[:5]
                     ))
-                
+
                 await asyncio.sleep(0.3)
         
         # Calculate visibility score
