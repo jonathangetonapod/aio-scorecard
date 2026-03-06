@@ -130,11 +130,6 @@ def check_domain_mentioned(text: str, domain: str, company_name: str = "") -> bo
         if len(no_space) > 4 and no_space in text_lower.replace(' ', ''):
             return True
 
-        # Try first word only if it's very distinctive (long + word boundary)
-        first_word = company_lower.split()[0] if ' ' in company_lower else ''
-        if len(first_word) > 5 and re.search(r'\b' + re.escape(first_word) + r'\b', text_lower):
-            return True
-
     return False
 
 
