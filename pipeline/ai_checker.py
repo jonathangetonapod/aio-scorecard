@@ -333,8 +333,8 @@ class AIChecker:
                             competitors_in_response.append(d)
 
                     # Create snippet
-                    snippet = response[:400].strip()
-                    if len(response) > 400:
+                    snippet = response[:600].strip()
+                    if len(response) > 600:
                         snippet = snippet.rsplit(' ', 1)[0] + '...'
 
                     report.responses.append(AIResponse(
@@ -372,8 +372,8 @@ class AIChecker:
                             competitors_in_response.append(d)
 
                     # Create snippet
-                    snippet = response[:400].strip()
-                    if len(response) > 400:
+                    snippet = response[:600].strip()
+                    if len(response) > 600:
                         snippet = snippet.rsplit(' ', 1)[0] + '...'
 
                     report.responses.append(AIResponse(

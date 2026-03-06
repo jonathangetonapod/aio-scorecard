@@ -51,6 +51,7 @@ class QueryResult(BaseModel):
     query_type: str
     keyword: str
     snippet: str
+    full_response: str = ""
     mentioned: bool
     competitors_found: list[str] = []
 
@@ -202,6 +203,7 @@ async def analyze_domain(req: AnalyzeRequest):
                 query_type=r.query_type,
                 keyword=r.keyword,
                 snippet=r.response_snippet,
+                full_response=r.response,
                 mentioned=r.mentions_target,
                 competitors_found=r.competitors_found
             )
