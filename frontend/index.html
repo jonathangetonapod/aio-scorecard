@@ -1557,12 +1557,17 @@
                 const platformIcon = q.platform === 'perplexity' ? '🔮' : '🤖';
                 const platformName = q.platform === 'perplexity' ? 'Perplexity' : 'ChatGPT';
 
-                // Highlight only the target domain in snippet (green)
+                // Highlight target domain and company name in snippet (green)
                 let highlightedSnippet = q.snippet || '';
                 const targetDomain = data.domain.replace('www.', '');
                 if (targetDomain) {
                     const domainRegex = new RegExp(targetDomain.replace(/\./g, '\\.'), 'gi');
                     highlightedSnippet = highlightedSnippet.replace(domainRegex, `<mark style="background: rgba(34, 197, 94, 0.35); padding: 1px 3px; border-radius: 3px; font-weight: 600;">$&</mark>`);
+                }
+                const targetCompany = data.company_name;
+                if (targetCompany) {
+                    const companyRegex = new RegExp(targetCompany.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                    highlightedSnippet = highlightedSnippet.replace(companyRegex, `<mark style="background: rgba(34, 197, 94, 0.35); padding: 1px 3px; border-radius: 3px; font-weight: 600;">$&</mark>`);
                 }
 
                 const hasFullResponse = q.full_response && q.full_response.length > (q.snippet || '').length;
