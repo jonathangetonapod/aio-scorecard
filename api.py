@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from pipeline.auto_detect import detect_from_domain
+from pipeline.auto_detect import detect_from_domain, detect_from_domain_deep
 from pipeline.ai_checker import AIChecker
 from pipeline.competitor_validator import validate_competitors
 from pipeline.pdf_generator import generate_pdf
@@ -135,7 +135,7 @@ async def analyze_domain(req: AnalyzeRequest):
         if not req.company_name or not req.primary_keyword:
             print(f"🔍 Auto-detecting info for {req.domain}...")
             try:
-                info = await detect_from_domain(
+                info = await detect_from_domain_deep(
                     req.domain,
                     perplexity_key=req.perplexity_key,
                     openai_key=req.openai_key

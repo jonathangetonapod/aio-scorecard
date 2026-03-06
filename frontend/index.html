@@ -1047,7 +1047,7 @@
                         <div style="color: var(--text-secondary); font-size: 0.85rem;">mentions</div>
                     </div>
                     <div style="background: rgba(226, 232, 240, 0.7); border-radius: 12px; padding: 18px; text-align: center;">
-                        <div style="font-size: 1.3rem; margin-bottom: 5px;">🤖 GPT-5</div>
+                        <div style="font-size: 1.3rem; margin-bottom: 5px;">🤖 ChatGPT</div>
                         <div style="font-size: 1.5rem; font-weight: 700;" id="chatgptScore">0/0</div>
                         <div style="color: var(--text-secondary); font-size: 0.85rem;">mentions</div>
                     </div>
@@ -1340,7 +1340,7 @@
             const primaryKw = data.primary_keyword || data.vertical;
             const allKws = data.keywords && data.keywords.length > 0 ? data.keywords : [data.vertical];
             const serviceTerm = primaryKw; // Keep for later use
-            document.getElementById('queryIntro').innerHTML = `We queried GPT-5 and Perplexity using your detected keywords: <strong>${allKws.slice(0, 3).join(', ')}</strong>. These are the exact vertical searches your potential customers make:`;
+            document.getElementById('queryIntro').innerHTML = `We queried ChatGPT and Perplexity using your detected keywords: <strong>${allKws.slice(0, 3).join(', ')}</strong>. These are the exact vertical searches your potential customers make:`;
             
             // Query stats
             document.getElementById('queriesAsked').textContent = data.total_queries;
@@ -1399,7 +1399,7 @@
             ` + queryResults.map((q, i) => {
                 const intentInfo = intentLabels[q.query_type] || { icon: '❓', label: q.query_type, color: 'var(--text-muted)' };
                 const platformIcon = q.platform === 'perplexity' ? '🔮' : '🤖';
-                const platformName = q.platform === 'perplexity' ? 'Perplexity' : 'GPT-5';
+                const platformName = q.platform === 'perplexity' ? 'Perplexity' : 'ChatGPT';
                 
                 // Highlight competitors in snippet
                 let highlightedSnippet = q.snippet || '';
@@ -1626,7 +1626,8 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Report generation failed');
+                    const err = await response.json().catch(() => ({ detail: 'Report generation failed' }));
+                    throw new Error(err.detail || 'Report generation failed');
                 }
                 
                 // Open HTML report in new tab for printing

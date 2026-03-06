@@ -458,12 +458,12 @@ async def detect_from_domain(domain: str, use_llm: bool = True, perplexity_key: 
 
 
 # Also try to fetch /about, /services, /capabilities pages for more keywords
-async def detect_from_domain_deep(domain: str) -> CompanyInfo:
+async def detect_from_domain_deep(domain: str, perplexity_key: str = None, openai_key: str = None) -> CompanyInfo:
     """
     Enhanced detection that also checks /about, /services, /capabilities pages.
     Use this for more thorough keyword extraction.
     """
-    info = await detect_from_domain(domain)
+    info = await detect_from_domain(domain, perplexity_key=perplexity_key, openai_key=openai_key)
     
     if not info.detected:
         return info

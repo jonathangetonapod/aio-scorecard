@@ -100,41 +100,41 @@ def check_domain_mentioned(text: str, domain: str, company_name: str = "") -> bo
     """Check if domain or company appears in text - with fuzzy matching"""
     text_lower = text.lower()
     domain_clean = domain.lower().replace('www.', '')
-    
+
     # Check full domain
     if domain_clean in text_lower:
         return True
-    
-    # Check domain without TLD
+
+    # Check domain without TLD (word boundary to avoid partial matches)
     domain_name = domain_clean.split('.')[0]
-    if len(domain_name) > 3 and domain_name in text_lower:
+    if len(domain_name) > 3 and re.search(r'\b' + re.escape(domain_name) + r'\b', text_lower):
         return True
-    
+
     # Check company name if provided (with variations)
     if company_name and len(company_name) > 3:
         company_lower = company_name.lower()
-        
-        # Direct match
-        if company_lower in text_lower:
+
+        # Direct match (word boundary)
+        if re.search(r'\b' + re.escape(company_lower) + r'\b', text_lower):
             return True
-        
+
         # Try without common suffixes
         for suffix in [' inc', ' llc', ' corp', ' ltd', ' co', ' company', ' manufacturing', ' mfg']:
             if company_lower.endswith(suffix):
                 base_name = company_lower[:-len(suffix)].strip()
-                if len(base_name) > 3 and base_name in text_lower:
+                if len(base_name) > 3 and re.search(r'\b' + re.escape(base_name) + r'\b', text_lower):
                     return True
-        
+
         # Try with spaces removed (e.g., "Proto Labs" vs "Protolabs")
         no_space = company_lower.replace(' ', '')
         if len(no_space) > 4 and no_space in text_lower.replace(' ', ''):
             return True
-        
-        # Try first word only if it's substantial (e.g., "Xometry" from "Xometry Inc")
+
+        # Try first word only if it's very distinctive (long + word boundary)
         first_word = company_lower.split()[0] if ' ' in company_lower else ''
-        if len(first_word) > 4 and first_word in text_lower:
+        if len(first_word) > 5 and re.search(r'\b' + re.escape(first_word) + r'\b', text_lower):
             return True
-    
+
     return False
 
 

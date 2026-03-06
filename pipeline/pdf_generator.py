@@ -12,7 +12,7 @@ def generate_report_html(data: dict) -> str:
     company = data.get('company_name', 'Company')
     domain = data.get('domain', '')
     location = data.get('location', '')
-    services = data.get('services', [])
+    keywords = data.get('keywords', data.get('primary_keyword', '').split() if data.get('primary_keyword') else [])
     competitors = [c for c in data.get('competitors', []) if c.get('is_valid', True)]
     total_queries = data.get('total_queries', 0)
     total_mentions = data.get('total_mentions', 0)
@@ -34,7 +34,7 @@ def generate_report_html(data: dict) -> str:
         grade, grade_color = "Critical", "#dc2626"
     
     # Revenue calc
-    service_lower = (services[0] if services else 'manufacturing').lower()
+    service_lower = (keywords[0] if keywords else 'manufacturing').lower()
     if 'aerospace' in service_lower: deal_size = 75000
     elif 'medical' in service_lower: deal_size = 50000
     elif 'automotive' in service_lower: deal_size = 40000
@@ -50,38 +50,7 @@ def generate_report_html(data: dict) -> str:
     deal_size_fmt = "{:,}".format(deal_size)
     missed_pct_fmt = round(missed_pct * 100)
     
-    # Build conditional sections
-    impact_html = ""
-    if monthly_risk > 0:
-        impact_html = f'''
-    <div class="impact-box">
-        <div class="impact-title">ESTIMATED MONTHLY REVENUE AT RISK</div>
-        <div class="impact-value">${monthly_risk_fmt}</div>
-        <div class="impact-detail">
-            Based on ~{monthly_searches} AI searches/month x {missed_pct_fmt}% going to competitors x ${deal_size_fmt} avg deal
-        </div>
-    </div>
-        '''
-    
-    competitors_html = ""
-    if competitors:
-        competitors_html = f'''
-    <h2>Who AI Recommends Instead</h2>
-    <table>
-        <tr>
-            <th style="width: 40px;">#</th>
-            <th>Competitor</th>
-            <th style="width: 80px;">Mentions</th>
-            <th style="width: 80px;">Industry</th>
-        </tr>
-        {competitor_rows}
-    </table>
-        '''
-    
-    mentioned_html = f'<h3 style="color: #059669;">✓ Where You Were Mentioned</h3>{mentioned_queries}' if mentioned_queries else ''
-    missed_html = f'<h3 style="color: #dc2626;">✗ Where You Were NOT Mentioned</h3>{missed_queries}' if missed_queries else ''
-    
-    # Build competitor rows
+    # Build competitor rows FIRST (before competitors_html f-string)
     competitor_rows = ""
     for i, c in enumerate(competitors[:8], 1):
         relevant_badge = '<span style="color: #059669;">✓</span>' if c.get('is_relevant') else '-'
@@ -93,17 +62,17 @@ def generate_report_html(data: dict) -> str:
                 <td style="text-align: center;">{relevant_badge}</td>
             </tr>
         '''
-    
-    # Build query items
+
+    # Build query items FIRST (before mentioned_html and missed_html f-strings)
     mentioned_queries = ""
     missed_queries = ""
-    
+
     for q in query_results:
         platform = "Perplexity" if q.get('platform') == 'perplexity' else "ChatGPT"
         query_text = q.get('query', '')[:80]
         snippet = q.get('snippet', '')[:150]
         comps = q.get('competitors_found', [])[:2]
-        
+
         if q.get('mentioned'):
             mentioned_queries += f'''
                 <div class="query-item mentioned">
@@ -128,6 +97,37 @@ def generate_report_html(data: dict) -> str:
                     {f'<div class="snippet">"{snippet}..."</div>' if snippet else ''}
                 </div>
             '''
+
+    # Build conditional sections (all variables now defined above)
+    impact_html = ""
+    if monthly_risk > 0:
+        impact_html = f'''
+    <div class="impact-box">
+        <div class="impact-title">ESTIMATED MONTHLY REVENUE AT RISK</div>
+        <div class="impact-value">${monthly_risk_fmt}</div>
+        <div class="impact-detail">
+            Based on ~{monthly_searches} AI searches/month x {missed_pct_fmt}% going to competitors x ${deal_size_fmt} avg deal
+        </div>
+    </div>
+        '''
+
+    competitors_html = ""
+    if competitors:
+        competitors_html = f'''
+    <h2>Who AI Recommends Instead</h2>
+    <table>
+        <tr>
+            <th style="width: 40px;">#</th>
+            <th>Competitor</th>
+            <th style="width: 80px;">Mentions</th>
+            <th style="width: 80px;">Industry</th>
+        </tr>
+        {competitor_rows}
+    </table>
+        '''
+
+    mentioned_html = f'<h3 style="color: #059669;">✓ Where You Were Mentioned</h3>{mentioned_queries}' if mentioned_queries else ''
+    missed_html = f'<h3 style="color: #dc2626;">✗ Where You Were NOT Mentioned</h3>{missed_queries}' if missed_queries else ''
     
     html = f'''<!DOCTYPE html>
 <html>
@@ -392,7 +392,7 @@ def generate_report_html(data: dict) -> str:
             <div class="stat-value {'green' if pplx_m > 0 else 'red'}">{pplx_m} / {pplx_q} mentions</div>
         </div>
         <div class="stat-box">
-            <div class="stat-label">ChatGPT (GPT-5)</div>
+            <div class="stat-label">ChatGPT (o3-mini)</div>
             <div class="stat-value {'green' if gpt_m > 0 else 'red'}">{gpt_m} / {gpt_q} mentions</div>
         </div>
     </div>
