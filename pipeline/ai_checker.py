@@ -97,38 +97,17 @@ def extract_domains(text: str) -> list[str]:
 
 
 def check_domain_mentioned(text: str, domain: str, company_name: str = "") -> bool:
-    """Check if domain or company appears in text - with fuzzy matching"""
+    """Check if the exact domain or exact company name appears in the text."""
     text_lower = text.lower()
     domain_clean = domain.lower().replace('www.', '')
 
-    # Check full domain
+    # Check exact full domain (e.g., "windowdepotlouisville.com")
     if domain_clean in text_lower:
         return True
 
-    # Check domain without TLD (word boundary to avoid partial matches)
-    domain_name = domain_clean.split('.')[0]
-    if len(domain_name) > 3 and re.search(r'\b' + re.escape(domain_name) + r'\b', text_lower):
+    # Check exact company name (case-insensitive)
+    if company_name and company_name.lower() in text_lower:
         return True
-
-    # Check company name if provided (with variations)
-    if company_name and len(company_name) > 3:
-        company_lower = company_name.lower()
-
-        # Direct match (word boundary)
-        if re.search(r'\b' + re.escape(company_lower) + r'\b', text_lower):
-            return True
-
-        # Try without common suffixes
-        for suffix in [' inc', ' llc', ' corp', ' ltd', ' co', ' company', ' manufacturing', ' mfg']:
-            if company_lower.endswith(suffix):
-                base_name = company_lower[:-len(suffix)].strip()
-                if len(base_name) > 3 and re.search(r'\b' + re.escape(base_name) + r'\b', text_lower):
-                    return True
-
-        # Try with spaces removed (e.g., "Proto Labs" vs "Protolabs")
-        no_space = company_lower.replace(' ', '')
-        if len(no_space) > 4 and no_space in text_lower.replace(' ', ''):
-            return True
 
     return False
 
@@ -143,56 +122,6 @@ class AIChecker:
         if not perplexity_key and not openai_key:
             raise ValueError("At least one API key required (Perplexity or OpenAI)")
 
-    async def verify_mention_with_llm(self, response_text: str, company_name: str, domain: str) -> bool:
-        """Use a fast LLM to verify if the company is actually mentioned/recommended."""
-        if not self.openai_key:
-            # Fall back to regex if no OpenAI key
-            return check_domain_mentioned(response_text, domain, company_name)
-
-        domain_clean = domain.lower().replace('www.', '')
-        prompt = f"""I need you to check if a SPECIFIC company is mentioned in this text.
-
-Company to find: "{company_name}"
-Domain to find: "{domain_clean}"
-
-Rules:
-- Answer YES ONLY if you see the EXACT company name "{company_name}" or the EXACT domain "{domain_clean}" in the text
-- Similar-sounding companies are NOT matches. For example:
-  "Window World" is NOT "{company_name}"
-  "Windows Direct USA" is NOT "{company_name}"
-  "windowworld.com" is NOT "{domain_clean}"
-- Partial matches do NOT count. The company name or domain must appear as written above.
-
-Text to search:
-\"\"\"
-{response_text[:2000]}
-\"\"\"
-
-Is "{company_name}" or "{domain_clean}" explicitly written in the text above? YES or NO only."""
-
-        try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {self.openai_key}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "gpt-5-mini-2025-08-07",
-                        "messages": [{"role": "user", "content": prompt}],
-                        "max_tokens": 5,
-                        "temperature": 0
-                    }
-                )
-                if resp.status_code != 200:
-                    return check_domain_mentioned(response_text, domain, company_name)
-
-                answer = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip().upper()
-                return answer.startswith("YES")
-        except Exception as e:
-            print(f"    ⚠ LLM verification failed ({type(e).__name__}), falling back to regex")
-            return check_domain_mentioned(response_text, domain, company_name)
     
     async def query_perplexity(self, prompt: str, retries: int = 2) -> str:
         """Query Perplexity API with web search"""
@@ -391,7 +320,7 @@ Is "{company_name}" or "{domain_clean}" explicitly written in the text above? YE
                     report.perplexity_queries += 1
                     report.total_queries += 1
 
-                    mentioned = await self.verify_mention_with_llm(response, company_name, domain)
+                    mentioned = check_domain_mentioned(response, domain, company_name)
                     if mentioned:
                         report.perplexity_mentions += 1
                         report.total_mentions += 1
@@ -430,7 +359,7 @@ Is "{company_name}" or "{domain_clean}" explicitly written in the text above? YE
                     report.chatgpt_queries += 1
                     report.total_queries += 1
 
-                    mentioned = await self.verify_mention_with_llm(response, company_name, domain)
+                    mentioned = check_domain_mentioned(response, domain, company_name)
                     if mentioned:
                         report.chatgpt_mentions += 1
                         report.total_mentions += 1
