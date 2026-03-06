@@ -6,7 +6,7 @@ B2B lead generation tool that shows manufacturing prospects their AI visibility 
 
 1. **Keyword Extraction** - Scrapes the prospect's website and uses Perplexity AI to extract specific, searchable manufacturing capabilities (e.g., "investment casting", "5-axis CNC machining")
 2. **AI Visibility Queries** - Queries both ChatGPT (o3-mini) and Perplexity (sonar) with real buyer-intent questions across 4 query types: research, quote, supplier, and compare
-3. **Mention Detection** - Checks each AI response for the target company using fuzzy matching (domain, company name variations, etc.)
+3. **LLM Mention Verification** - Each AI response is verified by gpt-4o-mini to determine if the company was actually mentioned/recommended (eliminates false positives from regex matching)
 4. **Competitor Intelligence** - Extracts and validates competitor domains mentioned by AI, checks accessibility and industry relevance
 5. **Report Generation** - Produces a printable HTML report with visibility score, revenue impact estimate, competitor rankings, and recommendations
 
@@ -20,7 +20,8 @@ B2B lead generation tool that shows manufacturing prospects their AI visibility 
 - Exports branded PDF reports (browser print-to-PDF)
 - Pre-formatted email variables for Instantly.ai campaign integration
 - Supports 15 manufacturing verticals (Aerospace, Medical, Automotive, CNC, Defense, etc.)
-- Bring-your-own API keys or use server defaults
+- Bring-your-own API keys with test/save functionality (persists in browser)
+- LLM-powered mention verification eliminates false positives from string matching
 
 ## Quick Start
 
@@ -49,12 +50,13 @@ Server runs at http://localhost:3002
 | `/` | GET | Serves the frontend |
 | `/api/analyze` | POST | Runs full visibility analysis pipeline |
 | `/api/report/pdf` | POST | Generates printable HTML report |
+| `/api/test-key` | POST | Validates a Perplexity or OpenAI API key |
 | `/api/health` | GET | Health check |
 
 ## Tech Stack
 
 - **Backend**: Python, FastAPI, httpx (async HTTP)
-- **AI Models**: OpenAI o3-mini, Perplexity sonar
+- **AI Models**: OpenAI o3-mini + gpt-4o-mini (verification), Perplexity sonar
 - **Frontend**: Vanilla HTML/CSS/JS (single-page app)
 - **Scraping**: BeautifulSoup4
 - **Deployment**: Docker (Python 3.12-slim), Railway
